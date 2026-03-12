@@ -5,7 +5,7 @@ use super::unicode::{
     VowelLength,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GraphemeType {
     Uyir,
@@ -101,7 +101,7 @@ pub fn word_grapheme_data(graphemes: &[TamilGrapheme]) -> WordGraphemeData {
             kadai_ezhuthu: Some(g.text.clone()),
             kadai_ezhuthu_mei: g.mei.map(|c| c.to_string()),
             kadai_ezhuthu_alavu: g.alavu,
-            kadai_ezhuthu_vagai: Some(g.vagai.clone()),
+            kadai_ezhuthu_vagai: Some(g.vagai),
         },
         None => WordGraphemeData {
             kadai_ezhuthu: None,

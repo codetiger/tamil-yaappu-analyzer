@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use super::syllable::TamilSyllable;
@@ -16,7 +18,7 @@ pub struct Asai {
     pub text: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SeerType {
     // Iyarseer (2-asai) — eerasai vaaipadu
@@ -43,6 +45,45 @@ pub enum SeerCategory {
     Iyarseer, // 1 or 2 asais
     Venseer,  // 3 asais
     Overflow, // 4+ asais
+}
+
+impl fmt::Display for AsaiType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AsaiType::Neer => write!(f, "நேர்"),
+            AsaiType::Nirai => write!(f, "நிரை"),
+        }
+    }
+}
+
+impl fmt::Display for SeerType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SeerType::Thema => write!(f, "தேமா"),
+            SeerType::Pulima => write!(f, "புளிமா"),
+            SeerType::Koovilam => write!(f, "கூவிளம்"),
+            SeerType::Karuvilam => write!(f, "கருவிளம்"),
+            SeerType::Themangai => write!(f, "தேமாங்காய்"),
+            SeerType::Themangani => write!(f, "தேமாங்கனி"),
+            SeerType::Koovilankai => write!(f, "கூவிளங்காய்"),
+            SeerType::Koovilankani => write!(f, "கூவிளங்கனி"),
+            SeerType::Pulimangai => write!(f, "புளிமாங்காய்"),
+            SeerType::Pulimangani => write!(f, "புளிமாங்கனி"),
+            SeerType::Karuvilangai => write!(f, "கருவிளங்காய்"),
+            SeerType::Karuvilankani => write!(f, "கருவிளங்கனி"),
+            SeerType::Overflow => write!(f, "overflow"),
+        }
+    }
+}
+
+impl fmt::Display for SeerCategory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SeerCategory::Iyarseer => write!(f, "இயற்சீர்"),
+            SeerCategory::Venseer => write!(f, "வெண்சீர்"),
+            SeerCategory::Overflow => write!(f, "overflow"),
+        }
+    }
 }
 
 pub struct SeerData {

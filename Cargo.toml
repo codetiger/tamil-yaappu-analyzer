@@ -13,5 +13,3 @@ async-trait = "0.1"
 unicode-normalization = "0.1"
 log = "0.4"
 env_logger = "0.11"
-chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1", features = ["v4"] }

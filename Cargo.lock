@@ -675,7 +675,6 @@ name = "tamil-prosody-validator"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "chrono",
  "dataflow-rs",
  "datalogic-rs",
  "env_logger",
@@ -684,7 +683,6 @@ dependencies = [
  "serde_json",
  "tokio",
  "unicode-normalization",
- "uuid",
 ]
 
 [[package]]

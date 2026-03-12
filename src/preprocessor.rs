@@ -106,33 +106,9 @@ fn process_word_text(analysis_text: &str, ctx: WordContext) -> SolData {
         && seer_data.asai_count > 0
         && seer_data.asai_count <= 3;
 
-    let ezhuthukkal: Vec<EzhuthuData> = graphemes
-        .iter()
-        .map(|g| EzhuthuData {
-            text: g.text.clone(),
-            vagai: g.vagai.clone(),
-            mei: g.mei.map(|c| c.to_string()),
-            alavu: g.alavu,
-        })
-        .collect();
-
-    let syllable_data: Vec<SyllableData> = syllables
-        .iter()
-        .map(|s| SyllableData {
-            text: s.text.clone(),
-            alavu: s.alavu,
-            is_closed: s.is_closed,
-            matrai: s.matrai,
-        })
-        .collect();
-
-    let asai_data: Vec<AsaiData> = asaikal
-        .iter()
-        .map(|a| AsaiData {
-            vagai: a.vagai,
-            text: a.text.clone(),
-        })
-        .collect();
+    let ezhuthukkal: Vec<EzhuthuData> = graphemes.iter().map(EzhuthuData::from).collect();
+    let syllable_data: Vec<SyllableData> = syllables.iter().map(SyllableData::from).collect();
+    let asai_data: Vec<AsaiData> = asaikal.iter().map(AsaiData::from).collect();
 
     SolData {
         adi_index: ctx.adi_index,
@@ -231,7 +207,7 @@ pub fn preprocess(raw_input: &str) -> PaaData {
 
     // Step 6b: Compound word expansion — decompose overflow words
     let mut expanded_sorkal: Vec<SolData> = Vec::new();
-    for (orig_idx, sol) in sorkal.iter().enumerate() {
+    for (orig_idx, sol) in sorkal.into_iter().enumerate() {
         if sol.seer_category == prosody::SeerCategory::Overflow {
             let analysis_text = sol
                 .phonological_text
@@ -261,36 +237,53 @@ pub fn preprocess(raw_input: &str) -> PaaData {
                 continue;
             }
         }
-        expanded_sorkal.push(sol.clone());
+        expanded_sorkal.push(sol);
     }
-    let sorkal = expanded_sorkal;
 
     // Recalculate adi_idanam after expansion
     let mut line_word_counts: Vec<usize> = vec![0; lines.len()];
-    let mut sorkal = sorkal;
+    let mut sorkal = expanded_sorkal;
     for sol in sorkal.iter_mut() {
         sol.adi_idanam = line_word_counts[sol.adi_index];
         line_word_counts[sol.adi_index] += 1;
     }
 
-    // Step 7a: Build adi (line) data
+    let adikal = build_adikal(&sorkal, &lines);
+    let thalaikal = build_thalaikal(&sorkal);
+    let eetru_sol = build_eetru_sol(&sorkal);
+
+    PaaData {
+        raw_input: raw_input.to_string(),
+        original_sol_count,
+        eetru_sol,
+        ani,
+        adikal,
+        sorkal,
+        thalaikal,
+        diagnostics: vec![],
+    }
+}
+
+/// Build adi (line) data from processed words.
+fn build_adikal(sorkal: &[SolData], lines: &[&str]) -> Vec<AdiData> {
     let mut adikal: Vec<AdiData> = Vec::new();
     for (line_idx, line_text) in lines.iter().enumerate() {
-        let line_words: Vec<&SolData> = sorkal.iter().filter(|s| s.adi_index == line_idx).collect();
-
-        let sol_varisaikal: Vec<usize> = sorkal
-            .iter()
-            .enumerate()
-            .filter(|(_, s)| s.adi_index == line_idx)
-            .map(|(i, _)| i)
-            .collect();
-
-        let seer_vagaikal: Vec<_> = line_words.iter().map(|w| w.seer_vagai.clone()).collect();
-
-        // Count logical (original) words: distinct compound_source_index values + non-compound words
+        let mut sol_varisaikal: Vec<usize> = Vec::new();
+        let mut seer_vagaikal: Vec<prosody::SeerType> = Vec::new();
         let mut seen_sources = std::collections::HashSet::new();
         let mut logical_count = 0usize;
-        for w in &line_words {
+        let mut syllable_count_total = 0usize;
+        let mut matrai_total = 0u32;
+
+        for (i, w) in sorkal.iter().enumerate() {
+            if w.adi_index != line_idx {
+                continue;
+            }
+            sol_varisaikal.push(i);
+            seer_vagaikal.push(w.seer_vagai);
+            syllable_count_total += w.syllables.len();
+            matrai_total += w.syllables.iter().map(|s| s.matrai as u32).sum::<u32>();
+
             if let Some(src) = w.compound_source_index {
                 if seen_sources.insert(src) {
                     logical_count += 1;
@@ -299,14 +292,6 @@ pub fn preprocess(raw_input: &str) -> PaaData {
                 logical_count += 1;
             }
         }
-
-        let syllable_count_total: usize = line_words.iter().map(|w| w.syllables.len()).sum();
-
-        let matrai_total: u32 = line_words
-            .iter()
-            .flat_map(|w| w.syllables.iter())
-            .map(|s| s.matrai as u32)
-            .sum();
 
         adikal.push(AdiData {
             text: line_text.to_string(),
@@ -317,10 +302,13 @@ pub fn preprocess(raw_input: &str) -> PaaData {
             matrai_total,
         });
     }
+    adikal
+}
 
-    // Step 7b: Compute junctions (thalaikal)
+/// Compute junctions (thalaikal) between consecutive words.
+fn build_thalaikal(sorkal: &[SolData]) -> Vec<ThalaiData> {
     let last_sol_index = sorkal.len().saturating_sub(1);
-    let thalaikal: Vec<ThalaiData> = (0..sorkal.len().saturating_sub(1))
+    (0..sorkal.len().saturating_sub(1))
         .map(|i| {
             let is_intra_compound = match (
                 sorkal[i].compound_source_index,
@@ -342,43 +330,35 @@ pub fn preprocess(raw_input: &str) -> PaaData {
                 is_to_eetru: i + 1 == last_sol_index,
             }
         })
-        .collect();
+        .collect()
+}
 
-    // Compute eetru (final) word data
-    let eetru_sol = if let Some(last) = sorkal.last() {
-        let is_kutrilugaram = last
-            .kadai_ezhuthu
-            .as_deref()
-            .map(unicode::is_kutrilugaram_ending)
-            .unwrap_or(false);
-        EetruSolData {
-            asai_count: last.asai_count,
-            seer_eerru: last.seer_eerru,
-            kadai_ezhuthu_mei: last.kadai_ezhuthu_mei.clone(),
-            kadai_ezhuthu_alavu: last.kadai_ezhuthu_alavu,
-            seer_category: last.seer_category,
-            is_kutrilugaram,
+/// Compute eetru (final) word data for workflow rules.
+fn build_eetru_sol(sorkal: &[SolData]) -> EetruSolData {
+    match sorkal.last() {
+        Some(last) => {
+            let is_kutrilugaram = last
+                .kadai_ezhuthu
+                .as_deref()
+                .map(unicode::is_kutrilugaram_ending)
+                .unwrap_or(false);
+            EetruSolData {
+                asai_count: last.asai_count,
+                seer_eerru: last.seer_eerru,
+                kadai_ezhuthu_mei: last.kadai_ezhuthu_mei.clone(),
+                kadai_ezhuthu_alavu: last.kadai_ezhuthu_alavu,
+                seer_category: last.seer_category,
+                is_kutrilugaram,
+            }
         }
-    } else {
-        EetruSolData {
+        None => EetruSolData {
             asai_count: 0,
             seer_eerru: prosody::AsaiType::Neer,
             kadai_ezhuthu_mei: None,
             kadai_ezhuthu_alavu: None,
             seer_category: prosody::SeerCategory::Overflow,
             is_kutrilugaram: false,
-        }
-    };
-
-    PaaData {
-        raw_input: raw_input.to_string(),
-        original_sol_count,
-        eetru_sol,
-        ani,
-        adikal,
-        sorkal,
-        thalaikal,
-        diagnostics: vec![],
+        },
     }
 }
 
@@ -392,18 +372,15 @@ fn compute_ani(sorkal: &[SolData], lines: &[&str]) -> AniData {
         };
     }
 
-    let line0: Vec<usize> = sorkal
-        .iter()
-        .enumerate()
-        .filter(|(_, s)| s.adi_index == 0)
-        .map(|(i, _)| i)
-        .collect();
-    let line1: Vec<usize> = sorkal
-        .iter()
-        .enumerate()
-        .filter(|(_, s)| s.adi_index == 1)
-        .map(|(i, _)| i)
-        .collect();
+    let mut line0: Vec<usize> = Vec::new();
+    let mut line1: Vec<usize> = Vec::new();
+    for (i, s) in sorkal.iter().enumerate() {
+        match s.adi_index {
+            0 => line0.push(i),
+            1 => line1.push(i),
+            _ => {}
+        }
+    }
 
     // Etukai: 2nd grapheme consonant base of first word of each line
     let etukai_present = match (line0.first(), line1.first()) {

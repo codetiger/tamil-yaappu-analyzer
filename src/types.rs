@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::tamil::grapheme::GraphemeType;
-use crate::tamil::prosody::{AsaiType, SeerCategory, SeerType};
+use crate::tamil::grapheme::{GraphemeType, TamilGrapheme};
+use crate::tamil::prosody::{Asai, AsaiType, SeerCategory, SeerType};
+use crate::tamil::syllable::TamilSyllable;
 use crate::tamil::unicode::VowelLength;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,6 +104,37 @@ pub struct SyllableData {
 pub struct AsaiData {
     pub vagai: AsaiType,
     pub text: String,
+}
+
+impl From<&TamilGrapheme> for EzhuthuData {
+    fn from(g: &TamilGrapheme) -> Self {
+        Self {
+            text: g.text.clone(),
+            vagai: g.vagai,
+            mei: g.mei.map(|c| c.to_string()),
+            alavu: g.alavu,
+        }
+    }
+}
+
+impl From<&TamilSyllable> for SyllableData {
+    fn from(s: &TamilSyllable) -> Self {
+        Self {
+            text: s.text.clone(),
+            alavu: s.alavu,
+            is_closed: s.is_closed,
+            matrai: s.matrai,
+        }
+    }
+}
+
+impl From<&Asai> for AsaiData {
+    fn from(a: &Asai) -> Self {
+        Self {
+            vagai: a.vagai,
+            text: a.text.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

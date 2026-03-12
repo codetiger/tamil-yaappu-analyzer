@@ -104,7 +104,7 @@ pub fn normalize_nfc(text: &str) -> String {
 }
 
 pub fn is_tamil_char(c: char) -> bool {
-    (c >= '\u{0B80}' && c <= '\u{0BFF}') || c == DANDA || c == DOUBLE_DANDA
+    ('\u{0B80}'..='\u{0BFF}').contains(&c) || c == DANDA || c == DOUBLE_DANDA
 }
 
 pub fn is_consonant(c: char) -> bool {
@@ -116,7 +116,7 @@ pub fn is_vowel(c: char) -> bool {
 }
 
 pub fn is_vowel_matra(c: char) -> bool {
-    c >= '\u{0BBE}' && c <= '\u{0BCC}'
+    ('\u{0BBE}'..='\u{0BCC}').contains(&c)
 }
 
 pub fn is_pulli(c: char) -> bool {

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::unicode::{
-    VowelLength, is_aytham, is_consonant, is_pulli, is_vowel, is_vowel_matra,
-    matra_vowel_length, vowel_length,
+    is_aytham, is_consonant, is_pulli, is_vowel, is_vowel_matra, matra_vowel_length, vowel_length,
+    VowelLength,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -178,14 +178,14 @@ mod tests {
         // எழுத்தெல்லாம் -> [எ, ழு, த், தெ, ல், லா, ம்]
         let gs = extract_graphemes("எழுத்தெல்லாம்");
         assert_eq!(gs.len(), 7);
-        assert_eq!(gs[0].vagai, GraphemeType::Uyir);   // எ
+        assert_eq!(gs[0].vagai, GraphemeType::Uyir); // எ
         assert_eq!(gs[1].vagai, GraphemeType::Uyirmei); // ழு
-        assert_eq!(gs[2].vagai, GraphemeType::Mei);     // த்
+        assert_eq!(gs[2].vagai, GraphemeType::Mei); // த்
         assert_eq!(gs[3].vagai, GraphemeType::Uyirmei); // தெ
-        assert_eq!(gs[4].vagai, GraphemeType::Mei);     // ல்
+        assert_eq!(gs[4].vagai, GraphemeType::Mei); // ல்
         assert_eq!(gs[5].vagai, GraphemeType::Uyirmei); // லா
         assert_eq!(gs[5].alavu, Some(VowelLength::Nedil));
-        assert_eq!(gs[6].vagai, GraphemeType::Mei);     // ம்
+        assert_eq!(gs[6].vagai, GraphemeType::Mei); // ம்
     }
 
     #[test]
@@ -196,6 +196,6 @@ mod tests {
         assert_eq!(gs[0].vagai, GraphemeType::Uyirmei); // ப
         assert_eq!(gs[1].vagai, GraphemeType::Uyirmei); // க
         assert_eq!(gs[2].vagai, GraphemeType::Uyirmei); // வ
-        assert_eq!(gs[3].vagai, GraphemeType::Mei);     // ன்
+        assert_eq!(gs[3].vagai, GraphemeType::Mei); // ன்
     }
 }

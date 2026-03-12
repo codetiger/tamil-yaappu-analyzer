@@ -20,18 +20,18 @@ pub struct Asai {
 #[serde(rename_all = "snake_case")]
 pub enum SeerType {
     // Iyarseer (2-asai) — eerasai vaaipadu
-    Thema,        // Neer + Neer    (was NeerSeer)
-    Pulima,       // Nirai + Neer   (was NiraiSeer)
-    Koovilam,     // Neer + Nirai   (was KaniSeer)
-    Karuvilam,    // Nirai + Nirai  (was MalarSeer)
+    Thema,     // Neer + Neer    (was NeerSeer)
+    Pulima,    // Nirai + Neer   (was NiraiSeer)
+    Koovilam,  // Neer + Nirai   (was KaniSeer)
+    Karuvilam, // Nirai + Nirai  (was MalarSeer)
     // Venseer (3-asai) — moovasai vaaipadu
-    Themangai,    // Neer + Neer + Neer
-    Themangani,   // Neer + Neer + Nirai
-    Koovilankai,  // Neer + Nirai + Neer
-    Koovilankani, // Neer + Nirai + Nirai
-    Pulimangai,   // Nirai + Neer + Neer
-    Pulimangani,  // Nirai + Neer + Nirai
-    Karuvilangai, // Nirai + Nirai + Neer
+    Themangai,     // Neer + Neer + Neer
+    Themangani,    // Neer + Neer + Nirai
+    Koovilankai,   // Neer + Nirai + Neer
+    Koovilankani,  // Neer + Nirai + Nirai
+    Pulimangai,    // Nirai + Neer + Neer
+    Pulimangani,   // Nirai + Neer + Nirai
+    Karuvilangai,  // Nirai + Nirai + Neer
     Karuvilankani, // Nirai + Nirai + Nirai
     // Invalid (4+ asais)
     Overflow,
@@ -131,14 +131,8 @@ pub fn classify_seer(asaikal: &[Asai]) -> SeerData {
         .collect::<Vec<_>>()
         .join("_");
 
-    let seer_muthal = asaikal
-        .first()
-        .map(|a| a.vagai)
-        .unwrap_or(AsaiType::Neer);
-    let seer_eerru = asaikal
-        .last()
-        .map(|a| a.vagai)
-        .unwrap_or(AsaiType::Neer);
+    let seer_muthal = asaikal.first().map(|a| a.vagai).unwrap_or(AsaiType::Neer);
+    let seer_eerru = asaikal.last().map(|a| a.vagai).unwrap_or(AsaiType::Neer);
 
     let asai_count = asaikal.len();
 

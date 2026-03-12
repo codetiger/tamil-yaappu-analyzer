@@ -3,7 +3,6 @@
 /// Words with 4+ asais (classified as "Overflow") are typically compound words
 /// that should be decomposed at asai-level boundaries into valid sub-units
 /// (1-3 asais each = Iyarseer or Venseer).
-
 use super::grapheme::extract_graphemes;
 use super::prosody::{classify_asai, classify_seer, SeerCategory};
 use super::syllable::syllabify;
@@ -52,10 +51,8 @@ impl BinarySplit {
     /// Score for disambiguation: prefer 2+2, then 2+3/3+2, then others.
     /// Higher is better.
     fn score(&self) -> u32 {
-        let both_iyarseer =
-            self.left_asai_count <= 2 && self.right_asai_count <= 2;
-        let one_venseer =
-            (self.left_asai_count == 3) != (self.right_asai_count == 3);
+        let both_iyarseer = self.left_asai_count <= 2 && self.right_asai_count <= 2;
+        let one_venseer = (self.left_asai_count == 3) != (self.right_asai_count == 3);
 
         if both_iyarseer {
             100 + self.split_pos as u32 // prefer later split among 2+2
@@ -67,16 +64,18 @@ impl BinarySplit {
     }
 }
 
-fn find_best_binary_split(
-    syllables: &[super::syllable::TamilSyllable],
-) -> Option<Vec<String>> {
+fn find_best_binary_split(syllables: &[super::syllable::TamilSyllable]) -> Option<Vec<String>> {
     let mut candidates: Vec<BinarySplit> = Vec::new();
 
     for split_at in 1..syllables.len() {
-        let left_text: String =
-            syllables[..split_at].iter().map(|s| s.text.as_str()).collect();
-        let right_text: String =
-            syllables[split_at..].iter().map(|s| s.text.as_str()).collect();
+        let left_text: String = syllables[..split_at]
+            .iter()
+            .map(|s| s.text.as_str())
+            .collect();
+        let right_text: String = syllables[split_at..]
+            .iter()
+            .map(|s| s.text.as_str())
+            .collect();
 
         let left_seer = classify_part(&left_text);
         let right_seer = classify_part(&right_text);
@@ -92,16 +91,14 @@ fn find_best_binary_split(
         }
     }
 
-    candidates.sort_by(|a, b| b.score().cmp(&a.score()));
+    candidates.sort_by_key(|c| std::cmp::Reverse(c.score()));
     candidates
         .into_iter()
         .next()
         .map(|c| vec![c.left_text, c.right_text])
 }
 
-fn find_best_ternary_split(
-    syllables: &[super::syllable::TamilSyllable],
-) -> Option<Vec<String>> {
+fn find_best_ternary_split(syllables: &[super::syllable::TamilSyllable]) -> Option<Vec<String>> {
     let n = syllables.len();
     let mut best: Option<(Vec<String>, u32)> = None;
 
@@ -123,7 +120,7 @@ fn find_best_ternary_split(
                 let all_iyarseer = s1.1 <= 2 && s2.1 <= 2 && s3.1 <= 2;
                 let score = if all_iyarseer { 100 } else { 50 } + j as u32;
 
-                if best.as_ref().map_or(true, |(_, bs)| score > *bs) {
+                if best.as_ref().is_none_or(|(_, bs)| score > *bs) {
                     best = Some((vec![p1, p2, p3], score));
                 }
             }
@@ -160,7 +157,10 @@ mod tests {
         // After fix (kuril+nedil = Nirai): [Nirai("உடை"), Neer("மை"), Neer("யுள்")] = 3-asai Venseer.
         // No decomposition needed.
         let result = decompose_compound("உடைமையுள்");
-        assert!(result.is_none(), "உடைமையுள் is now 3-asai Venseer, should not decompose");
+        assert!(
+            result.is_none(),
+            "உடைமையுள் is now 3-asai Venseer, should not decompose"
+        );
     }
 
     #[test]

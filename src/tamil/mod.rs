@@ -1,6 +1,6 @@
-pub mod unicode;
+pub mod compound;
 pub mod grapheme;
-pub mod syllable;
 pub mod prosody;
 pub mod sandhi;
-pub mod compound;
+pub mod syllable;
+pub mod unicode;

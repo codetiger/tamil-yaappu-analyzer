@@ -10,14 +10,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     // 1. Load workflows
-    let preprocess_wf =
-        Workflow::from_json(include_str!("../workflows/preprocessor.json"))?;
+    let preprocess_wf = Workflow::from_json(include_str!("../workflows/preprocessor.json"))?;
     let kural_l1_wf =
         Workflow::from_json(include_str!("../workflows/venba/kural/l1_structural.json"))?;
-    let l2_seer_wf =
-        Workflow::from_json(include_str!("../workflows/venba/l2_seer.json"))?;
-    let l3_vendalai_wf =
-        Workflow::from_json(include_str!("../workflows/venba/l3_vendalai.json"))?;
+    let l2_seer_wf = Workflow::from_json(include_str!("../workflows/venba/l2_seer.json"))?;
+    let l3_vendalai_wf = Workflow::from_json(include_str!("../workflows/venba/l3_vendalai.json"))?;
     let l4_ornamentation_wf =
         Workflow::from_json(include_str!("../workflows/venba/l4_ornamentation.json"))?;
 
@@ -28,7 +25,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 3. Create engine (preprocessor priority 0, L1=1, L2=2, L3=3, L4=4)
     let engine = Engine::new(
-        vec![preprocess_wf, kural_l1_wf, l2_seer_wf, l3_vendalai_wf, l4_ornamentation_wf],
+        vec![
+            preprocess_wf,
+            kural_l1_wf,
+            l2_seer_wf,
+            l3_vendalai_wf,
+            l4_ornamentation_wf,
+        ],
         Some(custom_fns),
     );
 
@@ -48,9 +51,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("Alagiduthal Vaaipadu:");
             for (i, sol) in sorkal.iter().enumerate() {
                 let text = sol.get("raw_text").and_then(|v| v.as_str()).unwrap_or("?");
-                let asai_amaivu = sol.get("asai_amaivu").and_then(|v| v.as_str()).unwrap_or("");
-                let seer_vagai = sol.get("seer_vagai").and_then(|v| v.as_str()).unwrap_or("?");
-                let seer_category = sol.get("seer_category").and_then(|v| v.as_str()).unwrap_or("?");
+                let asai_amaivu = sol
+                    .get("asai_amaivu")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let seer_vagai = sol
+                    .get("seer_vagai")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("?");
+                let seer_category = sol
+                    .get("seer_category")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("?");
 
                 let asai_tamil = asai_amaivu
                     .split('_')
@@ -86,7 +98,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 println!(
                     "  {:>2}. {:<16} {:<16} {} ({})",
-                    i + 1, text, asai_tamil, seer_tamil, category_label
+                    i + 1,
+                    text,
+                    asai_tamil,
+                    seer_tamil,
+                    category_label
                 );
             }
             println!();

@@ -7,7 +7,7 @@
 /// 2. **Compound boundary detection** — When a vowel matra is followed by
 ///    a vowel letter that is NOT its pluti pair, this indicates a morpheme
 ///    boundary within a compound word.
-
+///
 /// Pluti vowel pairs: (nedil_matra, kuril_vowel)
 /// When a nedil matra is immediately followed by its corresponding kuril vowel letter,
 /// the vowel is a pluti (extended) form and should be collapsed for metrical analysis.
@@ -197,8 +197,8 @@ mod tests {
 
         // Verify downstream: the phonological form should have 2 syllables not 3
         use crate::tamil::grapheme::extract_graphemes;
-        use crate::tamil::syllable::syllabify;
         use crate::tamil::prosody::classify_asai;
+        use crate::tamil::syllable::syllabify;
 
         let gs_before = extract_graphemes("படாஅர்");
         let syls_before = syllabify(&gs_before);
@@ -213,8 +213,8 @@ mod tests {
         // படாஅர் syllables: [ப(kuril,open), டா(nedil,open), அர்(kuril,closed)]
         // kuril+nedil = Nirai: [Nirai("படா"), Neer("அர்")] = 2 asais
         assert_eq!(asai_before.len(), 2); // 2 asais without pluti resolution
-        // படார் syllables: [ப(kuril,open), டார்(nedil,closed)]
-        // kuril+nedil = Nirai: [Nirai("படார்")] = 1 asai
-        assert_eq!(asai_after.len(), 1);  // 1 asai with pluti resolution
+                                          // படார் syllables: [ப(kuril,open), டார்(nedil,closed)]
+                                          // kuril+nedil = Nirai: [Nirai("படார்")] = 1 asai
+        assert_eq!(asai_after.len(), 1); // 1 asai with pluti resolution
     }
 }

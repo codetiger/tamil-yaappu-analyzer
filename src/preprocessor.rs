@@ -45,11 +45,7 @@ impl AsyncFunctionHandler for Preprocessor {
             .map_err(|e| DataflowError::Validation(format!("Serialization error: {}", e)))?;
 
         // Write to message context
-        let old_value = message
-            .data()
-            .get("paa")
-            .cloned()
-            .unwrap_or(Value::Null);
+        let old_value = message.data().get("paa").cloned().unwrap_or(Value::Null);
 
         message.data_mut()["paa"] = paa_value.clone();
         message.invalidate_context_cache();
@@ -65,10 +61,9 @@ impl AsyncFunctionHandler for Preprocessor {
     }
 }
 
-/// Process a text fragment through the full prosodic pipeline, returning a SolData.
-fn process_word_text(
-    analysis_text: &str,
-    raw_text: &str,
+/// Contextual metadata for a word being processed through the prosodic pipeline.
+struct WordContext {
+    raw_text: String,
     adi_index: usize,
     adi_idanam: usize,
     normalized_text: String,
@@ -81,7 +76,10 @@ fn process_word_text(
     compound_source_index: Option<usize>,
     compound_part: Option<usize>,
     compound_source_text: Option<String>,
-) -> SolData {
+}
+
+/// Process a text fragment through the full prosodic pipeline, returning a SolData.
+fn process_word_text(analysis_text: &str, ctx: WordContext) -> SolData {
     let graphemes = grapheme::extract_graphemes(analysis_text);
     let gdata = grapheme::word_grapheme_data(&graphemes);
 
@@ -103,8 +101,8 @@ fn process_word_text(
     let seer_data = prosody::classify_seer(&asaikal);
 
     let syllabification_failed = seer_data.asai_count == 0;
-    let ambiguous_asai = has_compound_boundary
-        && compound_source_index.is_none()
+    let ambiguous_asai = ctx.has_compound_boundary
+        && ctx.compound_source_index.is_none()
         && seer_data.asai_count > 0
         && seer_data.asai_count <= 3;
 
@@ -137,15 +135,15 @@ fn process_word_text(
         .collect();
 
     SolData {
-        adi_index,
-        adi_idanam,
-        raw_text: raw_text.to_string(),
-        normalized_text,
-        phonological_text,
-        is_valid_script,
-        invalid_chars,
-        is_empty,
-        danda_stripped,
+        adi_index: ctx.adi_index,
+        adi_idanam: ctx.adi_idanam,
+        raw_text: ctx.raw_text,
+        normalized_text: ctx.normalized_text,
+        phonological_text: ctx.phonological_text,
+        is_valid_script: ctx.is_valid_script,
+        invalid_chars: ctx.invalid_chars,
+        is_empty: ctx.is_empty,
+        danda_stripped: ctx.danda_stripped,
         ezhuthukkal,
         muthal_ezhuthu_monai_kurippu,
         kadai_ezhuthu: gdata.kadai_ezhuthu,
@@ -162,10 +160,10 @@ fn process_word_text(
         seer_eerru: seer_data.seer_eerru,
         syllabification_failed,
         ambiguous_asai,
-        has_compound_boundary,
-        compound_source_index,
-        compound_part,
-        compound_source_text,
+        has_compound_boundary: ctx.has_compound_boundary,
+        compound_source_index: ctx.compound_source_index,
+        compound_part: ctx.compound_part,
+        compound_source_text: ctx.compound_source_text,
     }
 }
 
@@ -208,19 +206,21 @@ pub fn preprocess(raw_input: &str) -> PaaData {
 
         sorkal.push(process_word_text(
             &analysis_text,
-            raw_word,
-            *line_idx,
-            adi_idanam,
-            normalized,
-            phonological_text,
-            is_valid_script,
-            invalid_chars.iter().map(|c| c.to_string()).collect(),
-            is_empty,
-            danda_stripped,
-            sandhi_result.has_compound_boundary,
-            None,
-            None,
-            None,
+            WordContext {
+                raw_text: raw_word.to_string(),
+                adi_index: *line_idx,
+                adi_idanam,
+                normalized_text: normalized,
+                phonological_text,
+                is_valid_script,
+                invalid_chars: invalid_chars.iter().map(|c| c.to_string()).collect(),
+                is_empty,
+                danda_stripped,
+                has_compound_boundary: sandhi_result.has_compound_boundary,
+                compound_source_index: None,
+                compound_part: None,
+                compound_source_text: None,
+            },
         ));
     }
 
@@ -233,24 +233,29 @@ pub fn preprocess(raw_input: &str) -> PaaData {
     let mut expanded_sorkal: Vec<SolData> = Vec::new();
     for (orig_idx, sol) in sorkal.iter().enumerate() {
         if sol.seer_category == prosody::SeerCategory::Overflow {
-            let analysis_text = sol.phonological_text.as_deref().unwrap_or(&sol.normalized_text);
+            let analysis_text = sol
+                .phonological_text
+                .as_deref()
+                .unwrap_or(&sol.normalized_text);
             if let Some(parts) = compound::decompose_compound(analysis_text) {
                 for (part_idx, part_text) in parts.iter().enumerate() {
                     expanded_sorkal.push(process_word_text(
                         part_text,
-                        &sol.raw_text,
-                        sol.adi_index,
-                        0, // recalculated below
-                        part_text.to_string(),
-                        Some(part_text.to_string()),
-                        sol.is_valid_script,
-                        sol.invalid_chars.clone(),
-                        false,
-                        sol.danda_stripped && part_idx == parts.len() - 1,
-                        false,
-                        Some(orig_idx),
-                        Some(part_idx),
-                        Some(sol.raw_text.clone()),
+                        WordContext {
+                            raw_text: sol.raw_text.clone(),
+                            adi_index: sol.adi_index,
+                            adi_idanam: 0, // recalculated below
+                            normalized_text: part_text.to_string(),
+                            phonological_text: Some(part_text.to_string()),
+                            is_valid_script: sol.is_valid_script,
+                            invalid_chars: sol.invalid_chars.clone(),
+                            is_empty: false,
+                            danda_stripped: sol.danda_stripped && part_idx == parts.len() - 1,
+                            has_compound_boundary: false,
+                            compound_source_index: Some(orig_idx),
+                            compound_part: Some(part_idx),
+                            compound_source_text: Some(sol.raw_text.clone()),
+                        },
                     ));
                 }
                 continue;
@@ -344,7 +349,7 @@ pub fn preprocess(raw_input: &str) -> PaaData {
         let is_kutrilugaram = last
             .kadai_ezhuthu
             .as_deref()
-            .map(|t| unicode::is_kutrilugaram_ending(t))
+            .map(unicode::is_kutrilugaram_ending)
             .unwrap_or(false);
         EetruSolData {
             asai_count: last.asai_count,

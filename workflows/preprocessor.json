@@ -1,0 +1,18 @@
+{
+  "id": "tamil_preprocessor",
+  "name": "Tamil Prosody Preprocessor",
+  "channel": "preprocessing",
+  "priority": 0,
+  "version": 1,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "preprocess",
+      "name": "Tamil Prosody Analysis",
+      "function": {
+        "name": "preprocessor",
+        "input": {}
+      }
+    }
+  ]
+}

@@ -1,0 +1,470 @@
+use async_trait::async_trait;
+use dataflow_rs::engine::{
+    error::{DataflowError, Result},
+    functions::{config::FunctionConfig, AsyncFunctionHandler},
+    message::{Change, Message},
+};
+use datalogic_rs::DataLogic;
+use serde_json::Value;
+use std::sync::Arc;
+
+use crate::tamil::{compound, grapheme, prosody, sandhi, syllable, unicode};
+use crate::types::*;
+
+pub struct Preprocessor;
+
+#[async_trait]
+impl AsyncFunctionHandler for Preprocessor {
+    async fn execute(
+        &self,
+        message: &mut Message,
+        config: &FunctionConfig,
+        _datalogic: Arc<DataLogic>,
+    ) -> Result<(usize, Vec<Change>)> {
+        // Verify custom function config
+        let _input = match config {
+            FunctionConfig::Custom { input, .. } => input,
+            _ => {
+                return Err(DataflowError::Validation(
+                    "Expected custom function config".to_string(),
+                ))
+            }
+        };
+
+        // Read raw input
+        let raw_input = message.data()["input"]
+            .as_str()
+            .ok_or_else(|| DataflowError::Validation("Missing data.input string".to_string()))?
+            .to_string();
+
+        // Run preprocessing pipeline
+        let paa = preprocess(&raw_input);
+
+        // Serialize to JSON
+        let paa_value = serde_json::to_value(&paa)
+            .map_err(|e| DataflowError::Validation(format!("Serialization error: {}", e)))?;
+
+        // Write to message context
+        let old_value = message
+            .data()
+            .get("paa")
+            .cloned()
+            .unwrap_or(Value::Null);
+
+        message.data_mut()["paa"] = paa_value.clone();
+        message.invalidate_context_cache();
+
+        Ok((
+            200,
+            vec![Change {
+                path: Arc::from("data.paa"),
+                old_value: Arc::new(old_value),
+                new_value: Arc::new(paa_value),
+            }],
+        ))
+    }
+}
+
+/// Process a text fragment through the full prosodic pipeline, returning a SolData.
+fn process_word_text(
+    analysis_text: &str,
+    raw_text: &str,
+    adi_index: usize,
+    adi_idanam: usize,
+    normalized_text: String,
+    phonological_text: Option<String>,
+    is_valid_script: bool,
+    invalid_chars: Vec<String>,
+    is_empty: bool,
+    danda_stripped: bool,
+    has_compound_boundary: bool,
+    compound_source_index: Option<usize>,
+    compound_part: Option<usize>,
+    compound_source_text: Option<String>,
+) -> SolData {
+    let graphemes = grapheme::extract_graphemes(analysis_text);
+    let gdata = grapheme::word_grapheme_data(&graphemes);
+
+    let muthal_ezhuthu_monai_kurippu = graphemes.first().and_then(|g| match g.vagai {
+        grapheme::GraphemeType::Uyir => g
+            .text
+            .chars()
+            .next()
+            .and_then(unicode::vowel_monai_group)
+            .map(|c| c.to_string()),
+        grapheme::GraphemeType::Uyirmei | grapheme::GraphemeType::Mei => {
+            g.mei.map(|c| c.to_string())
+        }
+        grapheme::GraphemeType::Aytham => Some("ஃ".to_string()),
+    });
+
+    let syllables = syllable::syllabify(&graphemes);
+    let asaikal = prosody::classify_asai(&syllables);
+    let seer_data = prosody::classify_seer(&asaikal);
+
+    let syllabification_failed = seer_data.asai_count == 0;
+    let ambiguous_asai = has_compound_boundary
+        && compound_source_index.is_none()
+        && seer_data.asai_count > 0
+        && seer_data.asai_count <= 3;
+
+    let ezhuthukkal: Vec<EzhuthuData> = graphemes
+        .iter()
+        .map(|g| EzhuthuData {
+            text: g.text.clone(),
+            vagai: g.vagai.clone(),
+            mei: g.mei.map(|c| c.to_string()),
+            alavu: g.alavu,
+        })
+        .collect();
+
+    let syllable_data: Vec<SyllableData> = syllables
+        .iter()
+        .map(|s| SyllableData {
+            text: s.text.clone(),
+            alavu: s.alavu,
+            is_closed: s.is_closed,
+            matrai: s.matrai,
+        })
+        .collect();
+
+    let asai_data: Vec<AsaiData> = asaikal
+        .iter()
+        .map(|a| AsaiData {
+            vagai: a.vagai,
+            text: a.text.clone(),
+        })
+        .collect();
+
+    SolData {
+        adi_index,
+        adi_idanam,
+        raw_text: raw_text.to_string(),
+        normalized_text,
+        phonological_text,
+        is_valid_script,
+        invalid_chars,
+        is_empty,
+        danda_stripped,
+        ezhuthukkal,
+        muthal_ezhuthu_monai_kurippu,
+        kadai_ezhuthu: gdata.kadai_ezhuthu,
+        kadai_ezhuthu_mei: gdata.kadai_ezhuthu_mei,
+        kadai_ezhuthu_alavu: gdata.kadai_ezhuthu_alavu,
+        kadai_ezhuthu_vagai: gdata.kadai_ezhuthu_vagai,
+        syllables: syllable_data,
+        asaikal: asai_data,
+        asai_amaivu: seer_data.asai_amaivu,
+        seer_vagai: seer_data.seer_vagai,
+        seer_category: seer_data.seer_category,
+        asai_count: seer_data.asai_count,
+        seer_muthal: seer_data.seer_muthal,
+        seer_eerru: seer_data.seer_eerru,
+        syllabification_failed,
+        ambiguous_asai,
+        has_compound_boundary,
+        compound_source_index,
+        compound_part,
+        compound_source_text,
+    }
+}
+
+pub fn preprocess(raw_input: &str) -> PaaData {
+    // Step 1: Parse lines and words
+    let lines: Vec<&str> = raw_input.split('\n').collect();
+    let mut all_words: Vec<(usize, &str)> = Vec::new();
+    for (line_idx, line) in lines.iter().enumerate() {
+        for word in line.split_whitespace() {
+            all_words.push((line_idx, word));
+        }
+    }
+
+    // Step 2-6: Process each word (initial pass — no compound expansion yet)
+    let mut sorkal: Vec<SolData> = Vec::new();
+    let mut word_in_line_count: Vec<usize> = vec![0; lines.len()];
+
+    for (global_idx, (line_idx, raw_word)) in all_words.iter().enumerate() {
+        let adi_idanam = word_in_line_count[*line_idx];
+        word_in_line_count[*line_idx] += 1;
+
+        let normalized = unicode::normalize_nfc(raw_word);
+        let (is_valid_script, invalid_chars) = unicode::validate_script(&normalized);
+        let is_empty = normalized.is_empty();
+
+        let (text, danda_stripped) = if global_idx == all_words.len() - 1 {
+            unicode::strip_trailing_danda(&normalized)
+        } else {
+            (normalized.clone(), false)
+        };
+
+        let sandhi_result = sandhi::resolve(&text);
+        let phonological_text = if sandhi_result.pluti_resolved {
+            Some(sandhi_result.phonological_text.clone())
+        } else {
+            None
+        };
+
+        let analysis_text = phonological_text.as_deref().unwrap_or(&text).to_string();
+
+        sorkal.push(process_word_text(
+            &analysis_text,
+            raw_word,
+            *line_idx,
+            adi_idanam,
+            normalized,
+            phonological_text,
+            is_valid_script,
+            invalid_chars.iter().map(|c| c.to_string()).collect(),
+            is_empty,
+            danda_stripped,
+            sandhi_result.has_compound_boundary,
+            None,
+            None,
+            None,
+        ));
+    }
+
+    let original_sol_count = sorkal.len();
+
+    // Step 6a: Compute ornamentation (ani) data using original word positions
+    let ani = compute_ani(&sorkal, &lines);
+
+    // Step 6b: Compound word expansion — decompose overflow words
+    let mut expanded_sorkal: Vec<SolData> = Vec::new();
+    for (orig_idx, sol) in sorkal.iter().enumerate() {
+        if sol.seer_category == prosody::SeerCategory::Overflow {
+            let analysis_text = sol.phonological_text.as_deref().unwrap_or(&sol.normalized_text);
+            if let Some(parts) = compound::decompose_compound(analysis_text) {
+                for (part_idx, part_text) in parts.iter().enumerate() {
+                    expanded_sorkal.push(process_word_text(
+                        part_text,
+                        &sol.raw_text,
+                        sol.adi_index,
+                        0, // recalculated below
+                        part_text.to_string(),
+                        Some(part_text.to_string()),
+                        sol.is_valid_script,
+                        sol.invalid_chars.clone(),
+                        false,
+                        sol.danda_stripped && part_idx == parts.len() - 1,
+                        false,
+                        Some(orig_idx),
+                        Some(part_idx),
+                        Some(sol.raw_text.clone()),
+                    ));
+                }
+                continue;
+            }
+        }
+        expanded_sorkal.push(sol.clone());
+    }
+    let sorkal = expanded_sorkal;
+
+    // Recalculate adi_idanam after expansion
+    let mut line_word_counts: Vec<usize> = vec![0; lines.len()];
+    let mut sorkal = sorkal;
+    for sol in sorkal.iter_mut() {
+        sol.adi_idanam = line_word_counts[sol.adi_index];
+        line_word_counts[sol.adi_index] += 1;
+    }
+
+    // Step 7a: Build adi (line) data
+    let mut adikal: Vec<AdiData> = Vec::new();
+    for (line_idx, line_text) in lines.iter().enumerate() {
+        let line_words: Vec<&SolData> = sorkal.iter().filter(|s| s.adi_index == line_idx).collect();
+
+        let sol_varisaikal: Vec<usize> = sorkal
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.adi_index == line_idx)
+            .map(|(i, _)| i)
+            .collect();
+
+        let seer_vagaikal: Vec<_> = line_words.iter().map(|w| w.seer_vagai.clone()).collect();
+
+        // Count logical (original) words: distinct compound_source_index values + non-compound words
+        let mut seen_sources = std::collections::HashSet::new();
+        let mut logical_count = 0usize;
+        for w in &line_words {
+            if let Some(src) = w.compound_source_index {
+                if seen_sources.insert(src) {
+                    logical_count += 1;
+                }
+            } else {
+                logical_count += 1;
+            }
+        }
+
+        let syllable_count_total: usize = line_words.iter().map(|w| w.syllables.len()).sum();
+
+        let matrai_total: u32 = line_words
+            .iter()
+            .flat_map(|w| w.syllables.iter())
+            .map(|s| s.matrai as u32)
+            .sum();
+
+        adikal.push(AdiData {
+            text: line_text.to_string(),
+            sol_varisaikal,
+            seer_vagaikal,
+            logical_sol_count: logical_count,
+            syllable_count_total,
+            matrai_total,
+        });
+    }
+
+    // Step 7b: Compute junctions (thalaikal)
+    let last_sol_index = sorkal.len().saturating_sub(1);
+    let thalaikal: Vec<ThalaiData> = (0..sorkal.len().saturating_sub(1))
+        .map(|i| {
+            let is_intra_compound = match (
+                sorkal[i].compound_source_index,
+                sorkal[i + 1].compound_source_index,
+            ) {
+                (Some(a), Some(b)) => a == b,
+                _ => false,
+            };
+
+            ThalaiData {
+                from_sol_index: i,
+                to_sol_index: i + 1,
+                from_seer_category: sorkal[i].seer_category,
+                to_seer_category: sorkal[i + 1].seer_category,
+                eerru_asai: sorkal[i].seer_eerru,
+                muthal_asai: sorkal[i + 1].seer_muthal,
+                is_cross_adi: sorkal[i].adi_index != sorkal[i + 1].adi_index,
+                is_intra_compound,
+                is_to_eetru: i + 1 == last_sol_index,
+            }
+        })
+        .collect();
+
+    // Compute eetru (final) word data
+    let eetru_sol = if let Some(last) = sorkal.last() {
+        let is_kutrilugaram = last
+            .kadai_ezhuthu
+            .as_deref()
+            .map(|t| unicode::is_kutrilugaram_ending(t))
+            .unwrap_or(false);
+        EetruSolData {
+            asai_count: last.asai_count,
+            seer_eerru: last.seer_eerru,
+            kadai_ezhuthu_mei: last.kadai_ezhuthu_mei.clone(),
+            kadai_ezhuthu_alavu: last.kadai_ezhuthu_alavu,
+            seer_category: last.seer_category,
+            is_kutrilugaram,
+        }
+    } else {
+        EetruSolData {
+            asai_count: 0,
+            seer_eerru: prosody::AsaiType::Neer,
+            kadai_ezhuthu_mei: None,
+            kadai_ezhuthu_alavu: None,
+            seer_category: prosody::SeerCategory::Overflow,
+            is_kutrilugaram: false,
+        }
+    };
+
+    PaaData {
+        raw_input: raw_input.to_string(),
+        original_sol_count,
+        eetru_sol,
+        ani,
+        adikal,
+        sorkal,
+        thalaikal,
+        diagnostics: vec![],
+    }
+}
+
+/// Compute ornamentation data from the original (pre-expansion) word list.
+fn compute_ani(sorkal: &[SolData], lines: &[&str]) -> AniData {
+    if lines.len() < 2 {
+        return AniData {
+            etukai_present: false,
+            monai_present: false,
+            iyaipu_present: false,
+        };
+    }
+
+    let line0: Vec<usize> = sorkal
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.adi_index == 0)
+        .map(|(i, _)| i)
+        .collect();
+    let line1: Vec<usize> = sorkal
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.adi_index == 1)
+        .map(|(i, _)| i)
+        .collect();
+
+    // Etukai: 2nd grapheme consonant base of first word of each line
+    let etukai_present = match (line0.first(), line1.first()) {
+        (Some(&w0), Some(&w4)) => etukai_match(&sorkal[w0], &sorkal[w4]),
+        _ => false,
+    };
+
+    // Monai: first-letter alliteration (Word[0] vs Word[2], fallback Word[0] vs Word[1])
+    let monai_present = if line0.len() >= 3 {
+        monai_match(&sorkal[line0[0]], &sorkal[line0[2]])
+            || monai_match(&sorkal[line0[0]], &sorkal[line0[1]])
+    } else if line0.len() >= 2 {
+        monai_match(&sorkal[line0[0]], &sorkal[line0[1]])
+    } else {
+        false
+    };
+
+    // Iyaipu: end sound of last word of each line
+    let iyaipu_present = match (line0.last(), line1.last()) {
+        (Some(&w3), Some(&w6)) => iyaipu_match(&sorkal[w3], &sorkal[w6]),
+        _ => false,
+    };
+
+    AniData {
+        etukai_present,
+        monai_present,
+        iyaipu_present,
+    }
+}
+
+/// Etukai: compare the consonant of the 2nd grapheme (ezhuthu) of each word.
+/// In Tamil, all ezhuthu types (uyir, mei, uyirmei) are counted.
+/// For consonant-bearing graphemes → compare mei. For pure vowels → compare text.
+fn etukai_match(w0: &SolData, w4: &SolData) -> bool {
+    if w0.ezhuthukkal.len() < 2 || w4.ezhuthukkal.len() < 2 {
+        return false;
+    }
+    let g0 = &w0.ezhuthukkal[1];
+    let g4 = &w4.ezhuthukkal[1];
+    match (&g0.mei, &g4.mei) {
+        (Some(m0), Some(m4)) => m0 == m4,
+        (None, None) => g0.text == g4.text,
+        _ => false,
+    }
+}
+
+/// Monai: compare first-letter monai kurippu (consonant or vowel group).
+fn monai_match(w1: &SolData, w2: &SolData) -> bool {
+    match (
+        &w1.muthal_ezhuthu_monai_kurippu,
+        &w2.muthal_ezhuthu_monai_kurippu,
+    ) {
+        (Some(a), Some(b)) => a == b,
+        _ => false,
+    }
+}
+
+/// Iyaipu: compare final consonant or full final grapheme text.
+fn iyaipu_match(w3: &SolData, w6: &SolData) -> bool {
+    match (&w3.kadai_ezhuthu_mei, &w6.kadai_ezhuthu_mei) {
+        (Some(m3), Some(m6)) if m3 == m6 => return true,
+        _ => {}
+    }
+    match (&w3.kadai_ezhuthu, &w6.kadai_ezhuthu) {
+        (Some(t3), Some(t6)) if t3 == t6 => return true,
+        _ => {}
+    }
+    false
+}

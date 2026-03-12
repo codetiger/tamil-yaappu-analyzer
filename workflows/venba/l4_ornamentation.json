@@ -1,0 +1,70 @@
+{
+  "id": "venba_l4_ornamentation",
+  "name": "Venba L4 Ornamentation Validation",
+  "channel": "venba_kural",
+  "priority": 4,
+  "version": 2,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "l4_1_etukai",
+      "name": "L4-1: Etukai (Second-Letter Rhyme) Check",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "or": [
+                  {"<": [{"var": "data.paa.original_sol_count"}, 7]},
+                  {"==": [{"var": "data.paa.ani.etukai_present"}, true]}
+                ]
+              },
+              "message": "W_ETUKAI_MISSING: Second letter of first word of Line 1 does not match first word of Line 2 — etukai absent"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l4_2_monai",
+      "name": "L4-2: Monai (First-Letter Alliteration) Check",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "or": [
+                  {"<": [{"var": "data.paa.original_sol_count"}, 7]},
+                  {"==": [{"var": "data.paa.ani.monai_present"}, true]}
+                ]
+              },
+              "message": "W_MONAI_MISSING: First letter of Word[0] does not alliterate with Word[2] or Word[1] — monai absent"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l4_3_iyaipu",
+      "name": "L4-3: Iyaipu (End Rhyme) Check",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "or": [
+                  {"<": [{"var": "data.paa.original_sol_count"}, 7]},
+                  {"==": [{"var": "data.paa.ani.iyaipu_present"}, true]}
+                ]
+              },
+              "message": "I_IYAIPU_ABSENT: Final sound of last word of Line 1 does not rhyme with last word of Line 2 — iyaipu absent"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

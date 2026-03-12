@@ -1,0 +1,161 @@
+{
+  "id": "venba_l2_seer",
+  "name": "Venba L2 Seer Validation",
+  "channel": "venba_kural",
+  "priority": 2,
+  "version": 4,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "l2_1_eetru_seer_pattern",
+      "name": "L2-1: Eetru Seer Pattern",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "or": [
+                  {"<": [{"var": "data.paa.original_sol_count"}, 7]},
+                  {"==": [{"var": "data.paa.eetru_sol.asai_count"}, 1]},
+                  {"and": [
+                    {"==": [{"var": "data.paa.eetru_sol.asai_count"}, 2]},
+                    {"==": [{"var": "data.paa.eetru_sol.seer_eerru"}, "neer"]}
+                  ]}
+                ]
+              },
+              "message": "W_EETRU_SEER_PATTERN: Final word should be Naal/Malar (1-asai) or Kaasu/Pirappu (2-asai ending neer)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l2_2_eetru_seer_overflow",
+      "name": "L2-2: Eetru Seer Overflow",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "or": [
+                  {"<": [{"var": "data.paa.original_sol_count"}, 7]},
+                  {"<=": [{"var": "data.paa.eetru_sol.asai_count"}, 2]}
+                ]
+              },
+              "message": "W_EETRU_SEER_ASAI: Final word should have at most 2 asais (Naal/Malar/Kaasu/Pirappu)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l2_3_kutrilugara_ending",
+      "name": "L2-3: Kutrilugara Ending (2-asai eetru seer only)",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "or": [
+                  {"<": [{"var": "data.paa.original_sol_count"}, 7]},
+                  {"==": [{"var": "data.paa.eetru_sol.asai_count"}, 1]},
+                  {"and": [
+                    {"==": [{"var": "data.paa.eetru_sol.asai_count"}, 2]},
+                    {"==": [{"var": "data.paa.eetru_sol.is_kutrilugaram"}, true]}
+                  ]}
+                ]
+              },
+              "message": "W_KUTRILUGARA_ENDING: 2-asai eetru seer (Kaasu/Pirappu) must end with kutrilugaram (கு/சு/டு/து/பு/று)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l2_4_seer_overflow",
+      "name": "L2-4: Seer Overflow",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "none": [
+                  {"var": "data.paa.sorkal"},
+                  {"==": [{"var": "seer_category"}, "overflow"]}
+                ]
+              },
+              "message": "W_SEER_OVERFLOW: One or more words have 4+ asais — may indicate compound word or parsing artifact"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l2_5_sandhi_unresolved",
+      "name": "L2-5: Unresolved Compound Sandhi",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "none": [
+                  {"var": "data.paa.sorkal"},
+                  {"and": [
+                    {"==": [{"var": "has_compound_boundary"}, true]},
+                    {"==": [{"var": "seer_category"}, "overflow"]}
+                  ]}
+                ]
+              },
+              "message": "W_SANDHI_UNRESOLVED: Compound word with detected morpheme boundary has 4+ asais — sandhi decomposition needed for accurate metrical analysis"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l2_6_syllabify_fail",
+      "name": "L2-6: Syllabification Failure",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "none": [
+                  {"var": "data.paa.sorkal"},
+                  {"==": [{"var": "syllabification_failed"}, true]}
+                ]
+              },
+              "message": "E_SYLLABIFY_FAIL: One or more words cannot be decomposed into valid Tamil syllables"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l2_7_ambiguous_asai",
+      "name": "L2-7: Ambiguous Asai Classification",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "none": [
+                  {"var": "data.paa.sorkal"},
+                  {"==": [{"var": "ambiguous_asai"}, true]}
+                ]
+              },
+              "message": "W_AMBIGUOUS_ASAI: Morpheme boundary detected — asai classification may differ from traditional reading"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

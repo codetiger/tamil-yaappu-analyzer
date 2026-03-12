@@ -1,0 +1,219 @@
+{
+  "id": "venba_l3_vendalai",
+  "name": "Venba L3 Vendalai (Junction) Validation",
+  "channel": "venba_kural",
+  "priority": 3,
+  "version": 4,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "l3_0_dependency",
+      "name": "L3-0: Thalai Dependency Check",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "none": [
+                  {"var": "data.paa.sorkal"},
+                  {"==": [{"var": "asai_amaivu"}, ""]}
+                ]
+              },
+              "message": "E_THALAI_DEPENDENCY: One or more words lack asai classification — thalai validation unreliable"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l3_1_iyarseer_neer_neer",
+      "name": "L3-1: IyarseerVendalai Neer-Neer Break",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "none": [
+                  {"var": "data.paa.thalaikal"},
+                  {"and": [
+                    {"==": [{"var": "is_intra_compound"}, false]},
+                    {"==": [{"var": "from_seer_category"}, "iyarseer"]},
+                    {"==": [{"var": "to_seer_category"}, "iyarseer"]},
+                    {"==": [{"var": "eerru_asai"}, "neer"]},
+                    {"==": [{"var": "muthal_asai"}, "neer"]},
+                    {"==": [{"var": "is_cross_adi"}, false]},
+                    {"!=": [{"var": "is_to_eetru"}, true]}
+                  ]}
+                ]
+              },
+              "message": "W_IYARSEER_NEER_NEER: Iyarseer ending Neer followed by Iyarseer starting Neer — expected alternation (greedy parsing may differ from traditional reading)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l3_2_iyarseer_nirai_nirai",
+      "name": "L3-2: IyarseerVendalai Nirai-Nirai Break",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "none": [
+                  {"var": "data.paa.thalaikal"},
+                  {"and": [
+                    {"==": [{"var": "is_intra_compound"}, false]},
+                    {"==": [{"var": "from_seer_category"}, "iyarseer"]},
+                    {"==": [{"var": "to_seer_category"}, "iyarseer"]},
+                    {"==": [{"var": "eerru_asai"}, "nirai"]},
+                    {"==": [{"var": "muthal_asai"}, "nirai"]},
+                    {"==": [{"var": "is_cross_adi"}, false]},
+                    {"!=": [{"var": "is_to_eetru"}, true]}
+                  ]}
+                ]
+              },
+              "message": "W_IYARSEER_NIRAI_NIRAI: Iyarseer ending Nirai followed by Iyarseer starting Nirai — expected alternation (greedy parsing may differ from traditional reading)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l3_3_venseer_invalid_junction",
+      "name": "L3-3: VenseerVendalai Invalid Junction (not KaaimunNer)",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "none": [
+                  {"var": "data.paa.thalaikal"},
+                  {"and": [
+                    {"==": [{"var": "is_intra_compound"}, false]},
+                    {"==": [{"var": "from_seer_category"}, "venseer"]},
+                    {"==": [{"var": "to_seer_category"}, "venseer"]},
+                    {"or": [
+                      {"==": [{"var": "muthal_asai"}, "nirai"]},
+                      {"==": [{"var": "eerru_asai"}, "nirai"]}
+                    ]},
+                    {"==": [{"var": "is_cross_adi"}, false]},
+                    {"!=": [{"var": "is_to_eetru"}, true]}
+                  ]}
+                ]
+              },
+              "message": "W_VENSEER_INVALID_JUNCTION: Venseer junction not valid KaaimunNer — requires both Neer ending and Neer beginning"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l3_4_crossline_thalai",
+      "name": "L3-4: Cross-line Thalai Warning",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "none": [
+                  {"var": "data.paa.thalaikal"},
+                  {"and": [
+                    {"==": [{"var": "is_intra_compound"}, false]},
+                    {"==": [{"var": "is_cross_adi"}, true]},
+                    {"or": [
+                      {"and": [
+                        {"==": [{"var": "from_seer_category"}, "iyarseer"]},
+                        {"==": [{"var": "to_seer_category"}, "iyarseer"]},
+                        {"==": [{"var": "eerru_asai"}, {"var": "muthal_asai"}]}
+                      ]},
+                      {"and": [
+                        {"==": [{"var": "from_seer_category"}, "venseer"]},
+                        {"==": [{"var": "to_seer_category"}, "venseer"]},
+                        {"or": [
+                          {"==": [{"var": "muthal_asai"}, "nirai"]},
+                          {"==": [{"var": "eerru_asai"}, "nirai"]}
+                        ]}
+                      ]}
+                    ]}
+                  ]}
+                ]
+              },
+              "message": "W_CROSSLINE_THALAI: Thalai break at cross-line junction — vendalai relaxed across lines"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l3_5_prefinal_thalai",
+      "name": "L3-5: Pre-final Junction Warning (J6: Word[5]→Word[6])",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "none": [
+                  {"var": "data.paa.thalaikal"},
+                  {"and": [
+                    {"==": [{"var": "is_intra_compound"}, false]},
+                    {"==": [{"var": "is_to_eetru"}, true]},
+                    {"or": [
+                      {"and": [
+                        {"==": [{"var": "from_seer_category"}, "iyarseer"]},
+                        {"==": [{"var": "to_seer_category"}, "iyarseer"]},
+                        {"==": [{"var": "eerru_asai"}, {"var": "muthal_asai"}]}
+                      ]},
+                      {"and": [
+                        {"==": [{"var": "from_seer_category"}, "venseer"]},
+                        {"==": [{"var": "to_seer_category"}, "venseer"]},
+                        {"or": [
+                          {"==": [{"var": "muthal_asai"}, "nirai"]},
+                          {"==": [{"var": "eerru_asai"}, "nirai"]}
+                        ]}
+                      ]}
+                    ]}
+                  ]}
+                ]
+              },
+              "message": "W_PREFINAL_THALAI: Thalai break at pre-final junction (Word[5]→Word[6])"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l3_6_cross_category",
+      "name": "L3-6: Cross-Category Junction Warning",
+      "function": {
+        "name": "validation",
+        "input": {
+          "rules": [
+            {
+              "logic": {
+                "none": [
+                  {"var": "data.paa.thalaikal"},
+                  {"and": [
+                    {"==": [{"var": "is_intra_compound"}, false]},
+                    {"!=": [{"var": "from_seer_category"}, {"var": "to_seer_category"}]},
+                    {"!=": [{"var": "from_seer_category"}, "overflow"]},
+                    {"!=": [{"var": "to_seer_category"}, "overflow"]},
+                    {"==": [{"var": "is_cross_adi"}, false]},
+                    {"!=": [{"var": "is_to_eetru"}, true]}
+                  ]}
+                ]
+              },
+              "message": "W_CROSS_CATEGORY: Junction between different seer categories (Iyarseer↔Venseer) — not valid IyarseerVendalai or VenseerVendalai"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

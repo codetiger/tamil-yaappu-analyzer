@@ -185,6 +185,10 @@ cargo run             # Run with sample verse
 cargo test            # Run all tests
 ```
 
+## References
+
+See [REFERENCE.md](REFERENCE.md) for academic papers and data sources used in this project.
+
 ## License
 
 Apache 2.0

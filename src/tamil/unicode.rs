@@ -162,6 +162,25 @@ pub fn vowel_monai_group(c: char) -> Option<char> {
     }
 }
 
+/// Map a vowel sign (matra) to its standalone vowel letter.
+/// Used for sandhi decomposition: splitting uyirmei back into mei + vowel.
+pub fn matra_to_vowel(matra: char) -> Option<char> {
+    match matra {
+        '\u{0BBE}' => Some('ஆ'), // ா → ஆ
+        '\u{0BBF}' => Some('இ'), // ி → இ
+        '\u{0BC0}' => Some('ஈ'), // ீ → ஈ
+        '\u{0BC1}' => Some('உ'), // ு → உ
+        '\u{0BC2}' => Some('ஊ'), // ூ → ஊ
+        '\u{0BC6}' => Some('எ'), // ெ → எ
+        '\u{0BC7}' => Some('ஏ'), // ே → ஏ
+        '\u{0BC8}' => Some('ஐ'), // ை → ஐ
+        '\u{0BCA}' => Some('ஒ'), // ொ → ஒ
+        '\u{0BCB}' => Some('ஓ'), // ோ → ஓ
+        '\u{0BCC}' => Some('ஔ'), // ௌ → ஔ
+        _ => None,
+    }
+}
+
 pub fn validate_script(word: &str) -> (bool, Vec<char>) {
     let invalid: Vec<char> = word.chars().filter(|c| !is_tamil_char(*c)).collect();
     (invalid.is_empty(), invalid)

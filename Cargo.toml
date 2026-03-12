@@ -8,8 +8,10 @@ dataflow-rs = { path = "../Plasmatic/dataflow-rs" }
 datalogic-rs = "4.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
 unicode-normalization = "0.1"
 log = "0.4"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["full"] }
 env_logger = "0.11"

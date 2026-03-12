@@ -9,10 +9,7 @@
     {
       "id": "preprocess",
       "name": "Tamil Prosody Analysis",
-      "function": {
-        "name": "preprocessor",
-        "input": {}
-      }
+      "function": {"name": "preprocessor", "input": {}}
     }
   ]
 }

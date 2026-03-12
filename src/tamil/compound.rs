@@ -279,8 +279,7 @@ fn find_best_ternary_split(syllables: &[super::syllable::TamilSyllable]) -> Opti
                     && s3.0 != SeerCategory::Overflow
                 {
                     let all_iyarseer = s1.1 <= 2 && s2.1 <= 2 && s3.1 <= 2;
-                    let score =
-                        if all_iyarseer { 100 } else { 50 } + bonus;
+                    let score = if all_iyarseer { 100 } else { 50 } + bonus;
 
                     if best.as_ref().is_none_or(|(_, bs)| score > *bs) {
                         best = Some((vec![t1, t2, t3], score));

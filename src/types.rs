@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -5,6 +7,38 @@ use crate::tamil::grapheme::{GraphemeType, TamilGrapheme};
 use crate::tamil::prosody::{Asai, AsaiType, SeerCategory, SeerType};
 use crate::tamil::syllable::TamilSyllable;
 use crate::tamil::unicode::VowelLength;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ThalaiType {
+    IyarseerVendalai,
+    VenseerVendalai,
+    CrossCategory,
+    IntraCompound,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EetruType {
+    Naal,
+    Malar,
+    Kaasu,
+    Pirappu,
+    Overflow,
+}
+
+impl fmt::Display for EetruType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EetruType::Naal => write!(f, "naal"),
+            EetruType::Malar => write!(f, "malar"),
+            EetruType::Kaasu => write!(f, "kaasu"),
+            EetruType::Pirappu => write!(f, "pirappu"),
+            EetruType::Overflow => write!(f, "overflow"),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaaData {
@@ -23,8 +57,14 @@ pub struct PaaData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AniData {
     pub etukai_present: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub etukai_detail: Option<String>,
     pub monai_present: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub monai_detail: Option<String>,
     pub iyaipu_present: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub iyaipu_detail: Option<String>,
 }
 
 /// Computed eetru (final) word data for easy access in workflow rules.
@@ -36,6 +76,7 @@ pub struct EetruSolData {
     pub kadai_ezhuthu_alavu: Option<VowelLength>,
     pub seer_category: SeerCategory,
     pub is_kutrilugaram: bool,
+    pub eetru_type: EetruType,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,7 +99,7 @@ pub struct SolData {
     pub is_valid_script: bool,
     pub invalid_chars: Vec<String>,
     pub is_empty: bool,
-    pub danda_stripped: bool,
+    pub non_tamil_stripped: bool,
     pub ezhuthukkal: Vec<EzhuthuData>,
     pub muthal_ezhuthu_monai_kurippu: Option<String>,
     pub kadai_ezhuthu: Option<String>,
@@ -148,4 +189,8 @@ pub struct ThalaiData {
     pub is_cross_adi: bool,
     pub is_intra_compound: bool,
     pub is_to_eetru: bool,
+    pub thalai_type: ThalaiType,
+    pub thalai_valid: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thalai_detail: Option<String>,
 }

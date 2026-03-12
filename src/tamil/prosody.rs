@@ -47,6 +47,15 @@ pub enum SeerCategory {
     Overflow, // 4+ asais
 }
 
+impl AsaiType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            AsaiType::Neer => "neer",
+            AsaiType::Nirai => "nirai",
+        }
+    }
+}
+
 impl fmt::Display for AsaiType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -165,10 +174,7 @@ pub fn classify_asai_with_boundaries(
 pub fn classify_seer(asaikal: &[Asai]) -> SeerData {
     let asai_amaivu = asaikal
         .iter()
-        .map(|a| match a.vagai {
-            AsaiType::Neer => "neer",
-            AsaiType::Nirai => "nirai",
-        })
+        .map(|a| a.vagai.as_str())
         .collect::<Vec<_>>()
         .join("_");
 

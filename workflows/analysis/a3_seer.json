@@ -1,0 +1,100 @@
+{
+  "id": "analysis_a3_seer",
+  "name": "A3 Seer Analysis Tags",
+  "channel": "analysis",
+  "priority": 3,
+  "version": 1,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "a3_eetru_type",
+      "name": "A3: Eetru Type",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.eetru_type",
+              "logic": {"var": "data.paa.eetru_sol.eetru_type"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a3_kutrilugaram",
+      "name": "A3: Kutrilugaram Ending",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.kutrilugaram",
+              "logic": {"var": "data.paa.eetru_sol.is_kutrilugaram"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a3_has_overflow",
+      "name": "A3: Has Overflow Seer",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.has_overflow",
+              "logic": {"some": [{"var": "data.paa.sorkal"}, {"==": [{"var": "seer_category"}, "overflow"]}]}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a3_has_compound",
+      "name": "A3: Has Compound Words",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.has_compound_words",
+              "logic": {"some": [{"var": "data.paa.sorkal"}, {"!!": [{"var": "compound_source_text"}]}]}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a3_syllabification_ok",
+      "name": "A3: Syllabification OK",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.syllabification_ok",
+              "logic": {"none": [{"var": "data.paa.sorkal"}, {"==": [{"var": "syllabification_failed"}, true]}]}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a3_seer_pattern",
+      "name": "A3: Seer Pattern",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.seer_pattern",
+              "logic": {"map": [{"var": "data.paa.sorkal"}, {"var": "seer_vagai"}]}
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

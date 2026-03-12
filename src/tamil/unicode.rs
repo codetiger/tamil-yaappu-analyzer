@@ -8,6 +8,15 @@ pub enum VowelLength {
     Nedil,
 }
 
+impl VowelLength {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            VowelLength::Kuril => "kuril",
+            VowelLength::Nedil => "nedil",
+        }
+    }
+}
+
 // Tamil vowels (உயிர்) - 12 letters
 pub const VOWELS: [char; 12] = [
     'அ', // U+0B85
@@ -186,16 +195,15 @@ pub fn validate_script(word: &str) -> (bool, Vec<char>) {
     (invalid.is_empty(), invalid)
 }
 
-pub fn strip_trailing_danda(word: &str) -> (String, bool) {
-    if let Some(stripped) = word.strip_suffix(DANDA) {
-        (stripped.to_string(), true)
-    } else if let Some(stripped) = word.strip_suffix(DOUBLE_DANDA) {
-        (stripped.to_string(), true)
-    } else if let Some(stripped) = word.strip_suffix('.') {
-        (stripped.to_string(), true)
-    } else {
-        (word.to_string(), false)
-    }
+/// Strip all non-Tamil-script characters from a word.
+/// Keeps only U+0B80–U+0BFF (Tamil block), removing dandas, hyphens, dots, etc.
+pub fn strip_non_tamil(word: &str) -> (String, bool) {
+    let stripped: String = word
+        .chars()
+        .filter(|&c| is_tamil_char(c) && c != DANDA && c != DOUBLE_DANDA)
+        .collect();
+    let was_stripped = stripped.len() != word.len();
+    (stripped, was_stripped)
 }
 
 #[cfg(test)]
@@ -253,16 +261,5 @@ mod tests {
         assert!(is_consonant('ன'));
         assert!(is_consonant('ஜ')); // grantha
         assert!(!is_consonant('அ')); // vowel
-    }
-
-    #[test]
-    fn test_danda_strip() {
-        let (text, stripped) = strip_trailing_danda("உலகு।");
-        assert_eq!(text, "உலகு");
-        assert!(stripped);
-
-        let (text, stripped) = strip_trailing_danda("உலகு");
-        assert_eq!(text, "உலகு");
-        assert!(!stripped);
     }
 }

@@ -11,13 +11,18 @@ use std::collections::HashMap;
 pub fn create_engine() -> Engine {
     let preprocess_wf =
         Workflow::from_json(include_str!("../workflows/preprocessor.json")).unwrap();
-    let kural_l1_wf =
-        Workflow::from_json(include_str!("../workflows/venba/kural/l1_structural.json")).unwrap();
-    let l2_seer_wf = Workflow::from_json(include_str!("../workflows/venba/l2_seer.json")).unwrap();
-    let l3_vendalai_wf =
-        Workflow::from_json(include_str!("../workflows/venba/l3_vendalai.json")).unwrap();
-    let l4_ornamentation_wf =
-        Workflow::from_json(include_str!("../workflows/venba/l4_ornamentation.json")).unwrap();
+    let a1_counts_wf =
+        Workflow::from_json(include_str!("../workflows/analysis/a1_counts.json")).unwrap();
+    let a2_structural_wf =
+        Workflow::from_json(include_str!("../workflows/analysis/a2_structural.json")).unwrap();
+    let a3_seer_wf =
+        Workflow::from_json(include_str!("../workflows/analysis/a3_seer.json")).unwrap();
+    let a4_thalai_wf =
+        Workflow::from_json(include_str!("../workflows/analysis/a4_thalai.json")).unwrap();
+    let a5_ornamentation_wf =
+        Workflow::from_json(include_str!("../workflows/analysis/a5_ornamentation.json")).unwrap();
+    let a6_classify_wf =
+        Workflow::from_json(include_str!("../workflows/analysis/a6_classify.json")).unwrap();
 
     let mut custom_fns: HashMap<String, Box<dyn AsyncFunctionHandler + Send + Sync>> =
         HashMap::new();
@@ -26,10 +31,12 @@ pub fn create_engine() -> Engine {
     Engine::new(
         vec![
             preprocess_wf,
-            kural_l1_wf,
-            l2_seer_wf,
-            l3_vendalai_wf,
-            l4_ornamentation_wf,
+            a1_counts_wf,
+            a2_structural_wf,
+            a3_seer_wf,
+            a4_thalai_wf,
+            a5_ornamentation_wf,
+            a6_classify_wf,
         ],
         Some(custom_fns),
     )

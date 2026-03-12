@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tamil Prosody Analyzer — தமிழ் யாப்பிலக்கண பகுப்பாய்வி</title>
+  <link rel="stylesheet" href="css/colors.css">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-title">
+      <h1>Tamil Prosody Analyzer</h1>
+      <span class="subtitle">தமிழ் யாப்பிலக்கண பகுப்பாய்வி</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Input -->
+    <section class="input-zone">
+      <div class="input-row">
+        <textarea
+          id="input-text"
+          class="input-textarea"
+          placeholder="Enter Tamil verse here / தமிழ் பாடலை இங்கே உள்ளிடவும்..."
+          rows="3"
+        ></textarea>
+        <div class="input-controls">
+          <button id="btn-analyze" class="btn-analyze" disabled>Analyze</button>
+          <select id="sample-select" class="sample-select">
+            <option value="" disabled selected>Load Sample...</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading -->
+    <div id="loading-bar" class="loading-bar" style="display: none;">
+      <span class="spinner"></span> Loading analysis engine...
+    </div>
+
+    <!-- Ornamentation Summary -->
+    <section id="validation-zone" class="validation-zone"></section>
+
+    <!-- Analysis Output: Verse + Detail side-by-side on desktop -->
+    <div id="analysis-output" class="analysis-output">
+      <div class="verse-panel">
+        <section id="verse-zone" class="verse-zone"></section>
+      </div>
+      <aside id="detail-zone" class="detail-zone"></aside>
+    </div>
+
+  </main>
+
+  <!-- Backdrop overlay for mobile bottom sheet -->
+  <div id="detail-backdrop" class="backdrop"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

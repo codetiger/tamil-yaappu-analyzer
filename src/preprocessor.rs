@@ -71,7 +71,7 @@ struct WordContext {
     is_valid_script: bool,
     invalid_chars: Vec<String>,
     is_empty: bool,
-    danda_stripped: bool,
+    non_tamil_stripped: bool,
     has_compound_boundary: bool,
     compound_source_index: Option<usize>,
     compound_part: Option<usize>,
@@ -119,7 +119,7 @@ fn process_word_text(analysis_text: &str, ctx: WordContext) -> SolData {
         is_valid_script: ctx.is_valid_script,
         invalid_chars: ctx.invalid_chars,
         is_empty: ctx.is_empty,
-        danda_stripped: ctx.danda_stripped,
+        non_tamil_stripped: ctx.non_tamil_stripped,
         ezhuthukkal,
         muthal_ezhuthu_monai_kurippu,
         kadai_ezhuthu: gdata.kadai_ezhuthu,
@@ -149,6 +149,10 @@ pub fn preprocess(raw_input: &str) -> PaaData {
     let mut all_words: Vec<(usize, &str)> = Vec::new();
     for (line_idx, line) in lines.iter().enumerate() {
         for word in line.split_whitespace() {
+            // Skip pure punctuation tokens (e.g. standalone "-", ".")
+            if !word.chars().any(|c| c.is_alphabetic()) {
+                continue;
+            }
             all_words.push((line_idx, word));
         }
     }
@@ -162,13 +166,14 @@ pub fn preprocess(raw_input: &str) -> PaaData {
         word_in_line_count[*line_idx] += 1;
 
         let normalized = unicode::normalize_nfc(raw_word);
-        let (is_valid_script, invalid_chars) = unicode::validate_script(&normalized);
-        let is_empty = normalized.is_empty();
-
-        let (text, danda_stripped) = if global_idx == all_words.len() - 1 {
-            unicode::strip_trailing_danda(&normalized)
+        let (text, non_tamil_stripped) = unicode::strip_non_tamil(&normalized);
+        let is_empty = text.is_empty();
+        // Validate stripped text; if stripping removed everything (e.g. "hello"), flag as invalid
+        let (is_valid_script, invalid_chars) = if is_empty {
+            let invalid: Vec<char> = normalized.chars().collect();
+            (false, invalid)
         } else {
-            (normalized.clone(), false)
+            unicode::validate_script(&text)
         };
 
         let sandhi_result = sandhi::resolve(&text);
@@ -191,7 +196,7 @@ pub fn preprocess(raw_input: &str) -> PaaData {
                 is_valid_script,
                 invalid_chars: invalid_chars.iter().map(|c| c.to_string()).collect(),
                 is_empty,
-                danda_stripped,
+                non_tamil_stripped,
                 has_compound_boundary: sandhi_result.has_compound_boundary,
                 compound_source_index: None,
                 compound_part: None,
@@ -226,7 +231,8 @@ pub fn preprocess(raw_input: &str) -> PaaData {
                             is_valid_script: sol.is_valid_script,
                             invalid_chars: sol.invalid_chars.clone(),
                             is_empty: false,
-                            danda_stripped: sol.danda_stripped && part_idx == parts.len() - 1,
+                            non_tamil_stripped: sol.non_tamil_stripped
+                                && part_idx == parts.len() - 1,
                             has_compound_boundary: false,
                             compound_source_index: Some(orig_idx),
                             compound_part: Some(part_idx),
@@ -318,19 +324,82 @@ fn build_thalaikal(sorkal: &[SolData]) -> Vec<ThalaiData> {
                 _ => false,
             };
 
+            let eerru_asai = sorkal[i].seer_eerru;
+            let muthal_asai = sorkal[i + 1].seer_muthal;
+            let from_cat = sorkal[i].seer_category;
+            let to_cat = sorkal[i + 1].seer_category;
+
+            let (thalai_type, thalai_valid, thalai_detail) =
+                classify_thalai(from_cat, to_cat, eerru_asai, muthal_asai, is_intra_compound);
+
             ThalaiData {
                 from_sol_index: i,
                 to_sol_index: i + 1,
-                from_seer_category: sorkal[i].seer_category,
-                to_seer_category: sorkal[i + 1].seer_category,
-                eerru_asai: sorkal[i].seer_eerru,
-                muthal_asai: sorkal[i + 1].seer_muthal,
+                from_seer_category: from_cat,
+                to_seer_category: to_cat,
+                eerru_asai,
+                muthal_asai,
                 is_cross_adi: sorkal[i].adi_index != sorkal[i + 1].adi_index,
                 is_intra_compound,
                 is_to_eetru: i + 1 == last_sol_index,
+                thalai_type,
+                thalai_valid,
+                thalai_detail,
             }
         })
         .collect()
+}
+
+/// Classify a junction between two words for venba analysis.
+/// The thalai rule is determined by the FROM seer's category:
+/// - Iyarseer vendalai: eerru ≠ muthal (Maamun Nirai / Vilamun Ner)
+/// - Venseer vendalai: eerru = neer AND muthal = neer (Kaaimun Ner)
+fn classify_thalai(
+    from_cat: prosody::SeerCategory,
+    _to_cat: prosody::SeerCategory,
+    eerru: prosody::AsaiType,
+    muthal: prosody::AsaiType,
+    is_intra_compound: bool,
+) -> (ThalaiType, bool, Option<String>) {
+    if is_intra_compound {
+        return (
+            ThalaiType::IntraCompound,
+            true,
+            Some("Junction within compound word — skipped".to_string()),
+        );
+    }
+
+    let eerru_s = eerru.as_str();
+    let muthal_s = muthal.as_str();
+
+    match from_cat {
+        prosody::SeerCategory::Iyarseer => {
+            // Iyarseer vendalai: eerru and muthal must differ
+            let valid = eerru != muthal;
+            let detail = format!(
+                "{}→{}: {} iyarseer vendalai",
+                eerru_s,
+                muthal_s,
+                if valid { "valid" } else { "invalid" }
+            );
+            (ThalaiType::IyarseerVendalai, valid, Some(detail))
+        }
+        prosody::SeerCategory::Venseer => {
+            // Venseer vendalai (KaaimunNer): both must be neer
+            let valid = eerru == prosody::AsaiType::Neer && muthal == prosody::AsaiType::Neer;
+            let detail = format!(
+                "{}→{}: {} venseer vendalai (KaaimunNer)",
+                eerru_s,
+                muthal_s,
+                if valid { "valid" } else { "invalid" }
+            );
+            (ThalaiType::VenseerVendalai, valid, Some(detail))
+        }
+        prosody::SeerCategory::Overflow => {
+            let detail = format!("{}→{}: overflow seer junction", eerru_s, muthal_s);
+            (ThalaiType::Unknown, false, Some(detail))
+        }
+    }
 }
 
 /// Compute eetru (final) word data for workflow rules.
@@ -342,6 +411,7 @@ fn build_eetru_sol(sorkal: &[SolData]) -> EetruSolData {
                 .as_deref()
                 .map(unicode::is_kutrilugaram_ending)
                 .unwrap_or(false);
+            let eetru_type = classify_eetru_type(last.asai_count, last.seer_eerru);
             EetruSolData {
                 asai_count: last.asai_count,
                 seer_eerru: last.seer_eerru,
@@ -349,6 +419,7 @@ fn build_eetru_sol(sorkal: &[SolData]) -> EetruSolData {
                 kadai_ezhuthu_alavu: last.kadai_ezhuthu_alavu,
                 seer_category: last.seer_category,
                 is_kutrilugaram,
+                eetru_type,
             }
         }
         None => EetruSolData {
@@ -358,7 +429,19 @@ fn build_eetru_sol(sorkal: &[SolData]) -> EetruSolData {
             kadai_ezhuthu_alavu: None,
             seer_category: prosody::SeerCategory::Overflow,
             is_kutrilugaram: false,
+            eetru_type: EetruType::Overflow,
         },
+    }
+}
+
+/// Classify the eetru (final word) type based on asai count and last asai type.
+fn classify_eetru_type(asai_count: usize, seer_eerru: prosody::AsaiType) -> EetruType {
+    match (asai_count, seer_eerru) {
+        (1, prosody::AsaiType::Neer) => EetruType::Naal,
+        (1, prosody::AsaiType::Nirai) => EetruType::Malar,
+        (2, prosody::AsaiType::Neer) => EetruType::Kaasu,
+        (2, prosody::AsaiType::Nirai) => EetruType::Pirappu,
+        _ => EetruType::Overflow,
     }
 }
 
@@ -367,8 +450,11 @@ fn compute_ani(sorkal: &[SolData], lines: &[&str]) -> AniData {
     if lines.len() < 2 {
         return AniData {
             etukai_present: false,
+            etukai_detail: None,
             monai_present: false,
+            monai_detail: None,
             iyaipu_present: false,
+            iyaipu_detail: None,
         };
     }
 
@@ -383,70 +469,118 @@ fn compute_ani(sorkal: &[SolData], lines: &[&str]) -> AniData {
     }
 
     // Etukai: 2nd grapheme consonant base of first word of each line
-    let etukai_present = match (line0.first(), line1.first()) {
+    let (etukai_present, etukai_detail) = match (line0.first(), line1.first()) {
         (Some(&w0), Some(&w4)) => etukai_match(&sorkal[w0], &sorkal[w4]),
-        _ => false,
+        _ => (
+            false,
+            Some("Insufficient words for etukai comparison".to_string()),
+        ),
     };
 
     // Monai: first-letter alliteration (Word[0] vs Word[2], fallback Word[0] vs Word[1])
-    let monai_present = if line0.len() >= 3 {
-        monai_match(&sorkal[line0[0]], &sorkal[line0[2]])
-            || monai_match(&sorkal[line0[0]], &sorkal[line0[1]])
+    let (monai_present, monai_detail) = if line0.len() >= 3 {
+        let (m1, d1) = monai_match(&sorkal[line0[0]], &sorkal[line0[2]], 1, 3);
+        if m1 {
+            (m1, d1)
+        } else {
+            monai_match(&sorkal[line0[0]], &sorkal[line0[1]], 1, 2)
+        }
     } else if line0.len() >= 2 {
-        monai_match(&sorkal[line0[0]], &sorkal[line0[1]])
+        monai_match(&sorkal[line0[0]], &sorkal[line0[1]], 1, 2)
     } else {
-        false
+        (
+            false,
+            Some("Insufficient words for monai comparison".to_string()),
+        )
     };
 
     // Iyaipu: end sound of last word of each line
-    let iyaipu_present = match (line0.last(), line1.last()) {
+    let (iyaipu_present, iyaipu_detail) = match (line0.last(), line1.last()) {
         (Some(&w3), Some(&w6)) => iyaipu_match(&sorkal[w3], &sorkal[w6]),
-        _ => false,
+        _ => (
+            false,
+            Some("Insufficient words for iyaipu comparison".to_string()),
+        ),
     };
 
     AniData {
         etukai_present,
+        etukai_detail,
         monai_present,
+        monai_detail,
         iyaipu_present,
+        iyaipu_detail,
     }
 }
 
 /// Etukai: compare the consonant of the 2nd grapheme (ezhuthu) of each word.
-/// In Tamil, all ezhuthu types (uyir, mei, uyirmei) are counted.
-/// For consonant-bearing graphemes → compare mei. For pure vowels → compare text.
-fn etukai_match(w0: &SolData, w4: &SolData) -> bool {
+fn etukai_match(w0: &SolData, w4: &SolData) -> (bool, Option<String>) {
     if w0.ezhuthukkal.len() < 2 || w4.ezhuthukkal.len() < 2 {
-        return false;
+        return (
+            false,
+            Some("Word too short for etukai (needs 2+ graphemes)".to_string()),
+        );
     }
     let g0 = &w0.ezhuthukkal[1];
     let g4 = &w4.ezhuthukkal[1];
-    match (&g0.mei, &g4.mei) {
+    let matched = match (&g0.mei, &g4.mei) {
         (Some(m0), Some(m4)) => m0 == m4,
         (None, None) => g0.text == g4.text,
         _ => false,
-    }
+    };
+    let detail = format!(
+        "2nd grapheme: {} vs {} — {}",
+        g0.text,
+        g4.text,
+        if matched { "match" } else { "no match" }
+    );
+    (matched, Some(detail))
 }
 
 /// Monai: compare first-letter monai kurippu (consonant or vowel group).
-fn monai_match(w1: &SolData, w2: &SolData) -> bool {
+fn monai_match(w1: &SolData, w2: &SolData, pos1: usize, pos2: usize) -> (bool, Option<String>) {
     match (
         &w1.muthal_ezhuthu_monai_kurippu,
         &w2.muthal_ezhuthu_monai_kurippu,
     ) {
-        (Some(a), Some(b)) => a == b,
-        _ => false,
+        (Some(a), Some(b)) => {
+            let matched = a == b;
+            let detail = format!(
+                "Word {} & {} first letter group: {} vs {} — {}",
+                pos1,
+                pos2,
+                a,
+                b,
+                if matched { "match" } else { "no match" }
+            );
+            (matched, Some(detail))
+        }
+        _ => (
+            false,
+            Some(format!("Word {} or {} missing monai kurippu", pos1, pos2)),
+        ),
     }
 }
 
-/// Iyaipu: compare final consonant or full final grapheme text.
-fn iyaipu_match(w3: &SolData, w6: &SolData) -> bool {
-    match (&w3.kadai_ezhuthu_mei, &w6.kadai_ezhuthu_mei) {
-        (Some(m3), Some(m6)) if m3 == m6 => return true,
-        _ => {}
+/// Iyaipu: compare the vowel length (alavu) of the last syllable of the last
+/// word in each line. Matching kuril-kuril or nedil-nedil indicates iyaipu.
+fn iyaipu_match(w3: &SolData, w6: &SolData) -> (bool, Option<String>) {
+    match (w3.syllables.last(), w6.syllables.last()) {
+        (Some(s3), Some(s6)) => {
+            let matched = s3.alavu == s6.alavu;
+            let a3 = s3.alavu.as_str();
+            let a6 = s6.alavu.as_str();
+            let detail = format!(
+                "Line-end vowel length: {} vs {} — {}",
+                a3,
+                a6,
+                if matched { "match" } else { "no match" }
+            );
+            (matched, Some(detail))
+        }
+        _ => (
+            false,
+            Some("Missing final syllable for iyaipu comparison".to_string()),
+        ),
     }
-    match (&w3.kadai_ezhuthu, &w6.kadai_ezhuthu) {
-        (Some(t3), Some(t6)) if t3 == t6 => return true,
-        _ => {}
-    }
-    false
 }

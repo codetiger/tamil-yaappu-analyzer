@@ -18,14 +18,6 @@ async fn run_engine(input: &str) -> Message {
     message
 }
 
-fn error_messages(message: &Message) -> Vec<String> {
-    message.errors.iter().map(|e| e.message.clone()).collect()
-}
-
-fn has_diagnostic(message: &Message, substring: &str) -> bool {
-    message.errors.iter().any(|e| e.message.contains(substring))
-}
-
 #[test]
 fn test_valid_kural_1_preprocessing() {
     let input = "அகர முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு";
@@ -192,7 +184,7 @@ fn test_danda_stripping() {
     let paa = preprocess(input);
 
     let last = &paa.sorkal[6];
-    assert!(last.danda_stripped);
+    assert!(last.non_tamil_stripped);
     assert_eq!(last.normalized_text, "உலகு।");
     assert_eq!(last.raw_text, "உலகு।");
 }
@@ -339,16 +331,16 @@ fn test_l4_monai_absent_kural1() {
 }
 
 #[test]
-fn test_l4_iyaipu_absent_kural1() {
+fn test_l4_iyaipu_present_kural1() {
     let input = "அகர முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு";
     let paa = preprocess(input);
 
-    // Last word line 1 = "ஆதி" -> kadai_ezhuthu_mei = "த"
-    // Last word line 2 = "உலகு" -> kadai_ezhuthu_mei = "க"
-    // த != க → iyaipu absent
+    // Last syllable line 1 "ஆதி" → "தி" (Kuril)
+    // Last syllable line 2 "உலகு" → "கு" (Kuril)
+    // Kuril == Kuril → iyaipu present
     assert!(
-        !paa.ani.iyaipu_present,
-        "Iyaipu should be absent for Kural #1"
+        paa.ani.iyaipu_present,
+        "Iyaipu should be present for Kural #1 (both end with kuril syllable)"
     );
 }
 
@@ -854,131 +846,125 @@ fn test_corpus_l2_l3_l4_statistics() {
 }
 
 // ================================================================
-// Engine Workflow Integration Tests
-// These test all 5 workflow JSONs through the dataflow engine.
+// Engine Analysis Workflow Integration Tests
+// These test the analysis workflows through the dataflow engine.
 // ================================================================
+
+/// Helper to get an analysis tag value from the message.
+fn get_analysis_tag(message: &Message, tag: &str) -> serde_json::Value {
+    message
+        .data()
+        .get("analysis")
+        .and_then(|a| a.get("tags"))
+        .and_then(|t| t.get(tag))
+        .cloned()
+        .unwrap_or(serde_json::Value::Null)
+}
+
+/// Helper to get a classification field from the message.
+fn get_classification(message: &Message, field: &str) -> serde_json::Value {
+    message
+        .data()
+        .get("analysis")
+        .and_then(|a| a.get("classification"))
+        .and_then(|c| c.get(field))
+        .cloned()
+        .unwrap_or(serde_json::Value::Null)
+}
 
 #[tokio::test]
 async fn test_engine_valid_kural1() {
     let msg = run_engine("அகர முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு").await;
-    let errs = error_messages(&msg);
 
-    // Kural #1 should pass all hard structural/prosodic rules
-    assert!(
-        !has_diagnostic(&msg, "E_WORD_COUNT"),
-        "Should not fire E_WORD_COUNT"
+    // Classification
+    assert_eq!(get_classification(&msg, "paa_family"), json!("venba"));
+    assert_eq!(get_classification(&msg, "venba_type"), json!("kural_venba"));
+    assert_eq!(get_classification(&msg, "adi_count"), json!(2));
+    assert_eq!(get_classification(&msg, "sol_count"), json!(7));
+
+    // Structural tags
+    assert_eq!(get_analysis_tag(&msg, "valid_tamil"), json!(true));
+    assert_eq!(get_analysis_tag(&msg, "no_empty_words"), json!(true));
+    assert_eq!(get_analysis_tag(&msg, "syllabification_ok"), json!(true));
+
+    // Ornamentation tags
+    assert_eq!(
+        get_analysis_tag(&msg, "etukai"),
+        json!(true),
+        "Etukai present (க == க)"
     );
-    assert!(
-        !has_diagnostic(&msg, "E_LINE_COUNT"),
-        "Should not fire E_LINE_COUNT"
+    assert_eq!(
+        get_analysis_tag(&msg, "monai"),
+        json!(false),
+        "Monai absent (அ vs ம)"
     );
-    assert!(
-        !has_diagnostic(&msg, "E_LINE_SPLIT"),
-        "Should not fire E_LINE_SPLIT"
-    );
-    assert!(
-        !has_diagnostic(&msg, "E_INVALID_SCRIPT"),
-        "Should not fire E_INVALID_SCRIPT"
-    );
-    assert!(
-        !has_diagnostic(&msg, "E_EMPTY_WORD"),
-        "Should not fire E_EMPTY_WORD"
-    );
-    assert!(
-        !has_diagnostic(&msg, "E_THALAI_BREAK"),
-        "Should not fire E_THALAI_BREAK"
-    );
-    assert!(
-        !has_diagnostic(&msg, "E_THALAI_DEPENDENCY"),
-        "Should not fire E_THALAI_DEPENDENCY"
+    assert_eq!(
+        get_analysis_tag(&msg, "iyaipu"),
+        json!(true),
+        "Iyaipu present (kuril == kuril)"
     );
 
-    // Expected warnings for Kural #1
-    // Note: W_EXTENDED_SEER no longer exists — 3-asai words are valid Venseer
-    assert!(
-        has_diagnostic(&msg, "W_MONAI_MISSING"),
-        "Should fire W_MONAI_MISSING (அ vs எ vs ம)"
-    );
-    assert!(
-        has_diagnostic(&msg, "I_IYAIPU_ABSENT"),
-        "Should fire I_IYAIPU_ABSENT (த vs க)"
-    );
-
-    // Etukai IS present (க == க), so warning should NOT fire
-    assert!(
-        !has_diagnostic(&msg, "W_ETUKAI_MISSING"),
-        "Etukai present — should not fire"
-    );
-
-    eprintln!("Engine Kural #1 diagnostics ({}):", errs.len());
-    for e in &errs {
-        eprintln!("  {}", e);
-    }
+    // Seer tags
+    assert_eq!(get_analysis_tag(&msg, "has_overflow"), json!(false));
+    assert_eq!(get_analysis_tag(&msg, "kutrilugaram"), json!(true));
+    assert_eq!(get_analysis_tag(&msg, "eetru_type"), json!("kaasu"));
 }
 
 #[tokio::test]
-async fn test_engine_l1_word_count() {
+async fn test_engine_classification_word_count() {
+    // 3 words — not kural_venba
     let msg = run_engine("அகர முதல\nபகவன்").await;
-    assert!(
-        has_diagnostic(&msg, "E_WORD_COUNT"),
-        "3 words should fire E_WORD_COUNT"
-    );
+    assert_eq!(get_classification(&msg, "venba_type"), json!("unknown"));
+    assert_eq!(get_classification(&msg, "sol_count"), json!(3));
 }
 
 #[tokio::test]
-async fn test_engine_l1_line_count() {
-    // 7 words on a single line — violates 2-line requirement
+async fn test_engine_classification_line_count() {
+    // 7 words on a single line — not kural_venba
     let msg = run_engine("அகர முதல எழுத்தெல்லாம் ஆதி பகவன் முதற்றே உலகு").await;
-    assert!(
-        has_diagnostic(&msg, "E_LINE_COUNT"),
-        "Single line should fire E_LINE_COUNT"
-    );
+    assert_eq!(get_classification(&msg, "adi_count"), json!(1));
+    assert_eq!(get_classification(&msg, "venba_type"), json!("unknown"));
 }
 
 #[tokio::test]
-async fn test_engine_l1_invalid_script() {
+async fn test_engine_invalid_script_tag() {
     let msg = run_engine("hello முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு").await;
-    assert!(
-        has_diagnostic(&msg, "E_INVALID_SCRIPT"),
-        "Non-Tamil word should fire E_INVALID_SCRIPT"
+    assert_eq!(
+        get_analysis_tag(&msg, "valid_tamil"),
+        json!(false),
+        "Non-Tamil word should set valid_tamil=false"
     );
 }
 
 #[tokio::test]
-async fn test_engine_l2_venseer_valid() {
+async fn test_engine_venseer_no_overflow() {
     // Kural #1 has எழுத்தெல்லாம் (3 asai = Pulimangai, valid Venseer)
-    // Should NOT produce any seer-related errors
     let msg = run_engine("அகர முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு").await;
-    assert!(
-        !has_diagnostic(&msg, "W_SEER_OVERFLOW"),
-        "Venseer should not fire W_SEER_OVERFLOW"
-    );
+    assert_eq!(get_analysis_tag(&msg, "has_overflow"), json!(false));
 }
 
 #[tokio::test]
-async fn test_engine_l3_dependency() {
-    // Non-Tamil word produces empty asai_amaivu → E_THALAI_DEPENDENCY
+async fn test_engine_syllabification_fail_tag() {
+    // Non-Tamil word "hello" → syllabification_ok should be false
     let msg = run_engine("hello முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு").await;
-    assert!(
-        has_diagnostic(&msg, "E_THALAI_DEPENDENCY"),
-        "Non-Tamil word should fire E_THALAI_DEPENDENCY"
+    assert_eq!(
+        get_analysis_tag(&msg, "syllabification_ok"),
+        json!(false),
+        "Non-Tamil word should set syllabification_ok=false"
     );
 }
 
 #[tokio::test]
-async fn test_engine_l4_etukai_present() {
+async fn test_engine_etukai_present() {
     // Kural #1: Word[0]="அகர" 2nd grapheme mei="க", Word[4]="பகவன்" 2nd mei="க" → match
     let msg = run_engine("அகர முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு").await;
-    assert!(
-        !has_diagnostic(&msg, "W_ETUKAI_MISSING"),
-        "Etukai is present — should NOT fire W_ETUKAI_MISSING"
-    );
+    assert_eq!(get_analysis_tag(&msg, "etukai"), json!(true));
 }
 
-/// Regression: every historically valid kural must produce zero E_-prefixed errors
-/// when run through the full engine pipeline (L1–L4 workflows).
+/// Regression: every historically valid kural must classify as kural_venba
+/// when run through the full engine analysis pipeline.
 #[tokio::test]
-async fn test_all_kurals_no_engine_errors() {
+async fn test_all_kurals_classify_as_kural_venba() {
     let kurals: Vec<String> = serde_json::from_str(KURAL_JSON).unwrap();
     let engine = create_engine();
     let mut failures: Vec<String> = Vec::new();
@@ -988,34 +974,30 @@ async fn test_all_kurals_no_engine_errors() {
         message.context["data"]["input"] = json!(kural);
         engine.process_message(&mut message).await.unwrap();
 
-        let errors: Vec<&str> = message
-            .errors
-            .iter()
-            .map(|e| e.message.as_str())
-            .filter(|m| m.starts_with("E_"))
-            .collect();
+        let venba_type = get_classification(&message, "venba_type");
+        let venba_type = venba_type.as_str().unwrap_or("missing");
 
-        if !errors.is_empty() {
+        if venba_type != "kural_venba" {
             failures.push(format!(
-                "Kural #{}: {} | {}",
+                "Kural #{}: classified as '{}' | {}",
                 idx + 1,
-                errors.join("; "),
+                venba_type,
                 kural.replace('\n', " / ")
             ));
         }
     }
 
     if !failures.is_empty() {
-        eprintln!("\n=== Engine Error Failures ({}) ===", failures.len());
+        eprintln!("\n=== Classification Failures ({}) ===", failures.len());
         for f in &failures {
             eprintln!("  {}", f);
         }
-        eprintln!("=================================\n");
+        eprintln!("====================================\n");
     }
 
     assert!(
         failures.is_empty(),
-        "{} kurals produced E_-level errors (see output above)",
+        "{} kurals failed kural_venba classification (see output above)",
         failures.len()
     );
 }
@@ -1252,16 +1234,6 @@ fn test_kutrilugaram_2asai_valid() {
     );
 }
 
-#[tokio::test]
-async fn test_engine_l2_syllabify_fail() {
-    // Non-Tamil word "hello" should trigger E_SYLLABIFY_FAIL
-    let msg = run_engine("hello முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு").await;
-    assert!(
-        has_diagnostic(&msg, "E_SYLLABIFY_FAIL"),
-        "Non-Tamil word should fire E_SYLLABIFY_FAIL"
-    );
-}
-
 #[test]
 fn test_syllabification_failed_field() {
     // Non-Tamil input: "hello" → syllabification_failed = true
@@ -1323,12 +1295,13 @@ fn test_ambiguous_asai_not_for_decomposed() {
 }
 
 #[tokio::test]
-async fn test_engine_kural1_kutrilugaram_passes() {
-    // Kural #1 has 2-asai final word "உலகு" with kutrilugaram → should NOT fire
+async fn test_engine_kural1_kutrilugaram_tag() {
+    // Kural #1 has 2-asai final word "உலகு" with kutrilugaram
     let msg = run_engine("அகர முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு").await;
-    assert!(
-        !has_diagnostic(&msg, "W_KUTRILUGARA_ENDING"),
-        "Kural #1 with kutrilugaram ending should not fire W_KUTRILUGARA_ENDING"
+    assert_eq!(
+        get_analysis_tag(&msg, "kutrilugaram"),
+        json!(true),
+        "Kural #1 final word has kutrilugaram ending"
     );
 }
 
@@ -1420,4 +1393,121 @@ fn test_corpus_new_l2_statistics() {
         syllabify_fail_count, 0,
         "No Tamil words should fail syllabification"
     );
+}
+
+// === Venba Sub-Type Classification Tests ===
+
+#[tokio::test]
+async fn test_engine_sindhiyal_venba_classification() {
+    // 3 lines, 4+4+3 = 11 words
+    let msg = run_engine(
+        "சுரையாழ அம்மி மிதப்ப வரையனைய\n\
+         யானைக்கு நீத்து முயற்கு நிலைஎன்ப\n\
+         கானக நாடன் சுனை",
+    )
+    .await;
+    assert_eq!(get_classification(&msg, "paa_family"), json!("venba"));
+    assert_eq!(
+        get_classification(&msg, "venba_type"),
+        json!("sindhiyal_venba")
+    );
+    assert_eq!(get_classification(&msg, "adi_count"), json!(3));
+    assert_eq!(get_classification(&msg, "sol_count"), json!(11));
+}
+
+#[tokio::test]
+async fn test_engine_alaviyal_venba_classification() {
+    // 4 lines, 4+4+4+3 = 15 words (Nerisai example — classified as alaviyal)
+    let msg = run_engine(
+        "நெல்லுக் கிறைத்தநீர் வாய்க்கால் வழியோடிப்\n\
+         புல்லுக்கு மாங்கே பொசியுமாம் தொல்லுலகில்\n\
+         நல்லா ரொருவர் உளரேல் அவர்பொருட்டு\n\
+         எல்லோர்க்கும் பெய்யும் மழை",
+    )
+    .await;
+    assert_eq!(get_classification(&msg, "paa_family"), json!("venba"));
+    assert_eq!(
+        get_classification(&msg, "venba_type"),
+        json!("alaviyal_venba")
+    );
+    assert_eq!(get_classification(&msg, "adi_count"), json!(4));
+    assert_eq!(get_classification(&msg, "sol_count"), json!(15));
+}
+
+#[tokio::test]
+async fn test_engine_alaviyal_venba_innisai_classification() {
+    // 4 lines, Innisai example — also classified as alaviyal
+    let msg = run_engine(
+        "கடைகலக்காற் காயார் கழிகமழ்ஞ் செய்யார்\n\
+         கொடையளிக்கண் போச்சாவார் கோலநேர் செய்யார்\n\
+         இடையறுத்துப் போகப் பிறனொருவன் சேரார்\n\
+         கடையபாக வாழ்தமென் பார்",
+    )
+    .await;
+    assert_eq!(
+        get_classification(&msg, "venba_type"),
+        json!("alaviyal_venba")
+    );
+    assert_eq!(get_classification(&msg, "adi_count"), json!(4));
+}
+
+#[tokio::test]
+async fn test_engine_pahrodai_venba_5_lines() {
+    // 5 lines, 4+4+4+4+3 = 19 words
+    let msg = run_engine(
+        "தென்னவன் கன்னிச் செழுஞ்சாரல் மாமலைவாய்ப்\n\
+         பொன்னிறப் பூவேர் புதுமலராம் நன்னெறியார்\n\
+         ஆரம் புனைந்த அம்மணி மேகலை\n\
+         பாரம் சுமந்து பயிலுமே வீரர்க்கும்\n\
+         ஓசை ஒலியும் உடைத்து",
+    )
+    .await;
+    assert_eq!(get_classification(&msg, "paa_family"), json!("venba"));
+    assert_eq!(
+        get_classification(&msg, "venba_type"),
+        json!("pahrodai_venba")
+    );
+    assert_eq!(get_classification(&msg, "adi_count"), json!(5));
+}
+
+#[tokio::test]
+async fn test_engine_pahrodai_venba_6_lines() {
+    // 6 lines, 4+4+4+4+4+3 = 23 words
+    let msg = run_engine(
+        "வான்மழை பெய்து வழிந்தோடும் வாரிபோல்\n\
+         யான்பெற்ற செல்வமும் ஈகையே வான்பொருளும்\n\
+         இல்லார்க்கு ஈவதே இன்பமென எண்ணுவார்\n\
+         நல்லார் ஒருவரே நற்பயனாம் புல்லார்க்கும்\n\
+         எல்லாம் வழங்கி மகிழ்வதே மெல்லியல்\n\
+         நல்லார் செயல் தரும்",
+    )
+    .await;
+    assert_eq!(
+        get_classification(&msg, "venba_type"),
+        json!("pahrodai_venba")
+    );
+    assert_eq!(get_classification(&msg, "adi_count"), json!(6));
+}
+
+#[tokio::test]
+async fn test_engine_kali_venba_classification() {
+    // 13 lines (Kandar Kali Venba opening, last line 3 words)
+    let msg = run_engine(
+        "பூமேவு செங்கமலப் புத்தேளும் தேறரிய\n\
+         பாமேவு தெய்வப் பழமறையும் தேமேவு\n\
+         நாதமும் நாதாந்த முடிவும் நவைதீர்ந்த\n\
+         போதமும் காணாத போதமாய் ஆதிநடு\n\
+         அந்தம் கடந்தநித்தி யானந்த போதமாய்ப்\n\
+         பந்தம் தணந்த பரஞ்சுடராய் வந்த\n\
+         அடியார் இதயத் தாமரை மேலமர்ந்த\n\
+         நெடியான் மருகன் நிமலன் வடியார்\n\
+         வேலோன் மயில்வீரன் வெற்றிப் புயத்தவன்\n\
+         காலோன் வணங்கும் கதிரவன் மேலோர்\n\
+         புகழும் புகழவன் பொன்னடி போற்றி\n\
+         இகழும் வினைதீர்க்கும் ஈசன் மகனாய்\n\
+         கந்தன் மலரடி போற்றி",
+    )
+    .await;
+    assert_eq!(get_classification(&msg, "venba_type"), json!("kali_venba"));
+    assert_eq!(get_classification(&msg, "adi_count"), json!(13));
 }

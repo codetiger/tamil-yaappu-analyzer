@@ -1,0 +1,165 @@
+/**
+ * app.js — Entry point: WASM loader, orchestration, event wiring.
+ */
+import { parseEngineOutput } from './data-mapper.js';
+import { renderVerse } from './components/verse-display.js';
+import { renderWordDetail } from './components/word-card.js';
+import { renderAnalysis, renderTagDetail } from './components/analysis-panel.js';
+
+// Sample verses for the dropdown
+const SAMPLE_VERSES = [
+  { label: 'Kural Venba — #1', text: 'அகர முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு' },
+  { label: 'Kural Venba — #47', text: 'எண்ணென்ப ஏனை எழுத்தென்ப இவ்விரண்டும்\nகண்ணென்ப வாழும் உயிர்க்கு' },
+  { label: 'Sindhiyal — Innisai', text: 'சுரையாழ அம்மி மிதப்ப வரையனைய\nயானைக்கு நீத்து முயற்கு நிலைஎன்ப\nகானக நாடன் சுனை.' },
+  { label: 'Sindhiyal — Nerisai', text: 'முல்லை முறுவலித்துக் காட்டின; மெல்லவே\nசேயிதழ்க் காந்தள் துடுப்பீன்ற; - போயினார்\nதிண்டேர் வரவுரைக்கும் கார்.' },
+  { label: 'Nerisai — Oru Vikarpam', text: 'நெல்லுக் கிறைத்தநீர் வாய்க்கால் வழியோடிப்\nபுல்லுக்கு மாங்கே பொசியுமாம் - தொல்லுலகில்\nநல்லா ரொருவர் உளரேல் அவர்பொருட்டு\nஎல்லோர்க்கும் பெய்யும் மழை.' },
+  { label: 'Nerisai — Iru Vikarpam', text: 'அஞ்சல் மடவனமே உன்ற னணிநடையும்\nவஞ்சி யனையார் மணிநடையும் - விஞ்சியது\nகாணப் பிடித்ததுகா ணென்றான் களிவண்டு\nமாணப் பிடித்ததார் மன்.' },
+  { label: 'Innisai Venba — 1', text: 'அறிதே அறியாமை அந்தம் கடந்த\nசெறிவே செறிவுடை யார்க்கும் - பிறிதோர்\nஉறுதியே யில்லை யுலகில் ஒருவன்\nநெறியே நெறியாய் விடும்.' },
+  { label: 'Innisai Venba — 2', text: 'கடைகலக்காற் காயார் கழிகமழ்ஞ் செய்யார்\nகொடையளிக்கண் போச்சாவார் கோலநேர் செய்யார்\nஇடையறுத்துப் போகப் பிறனொருவன் சேரார்\nகடையபாக வாழ்தமென் பார்.' },
+  { label: 'Pahrodai — 5 Lines', text: 'தென்னவன் கன்னிச் செழுஞ்சாரல் மாமலைவாய்ப்\nபொன்னிறப் பூவேர் புதுமலராம் - நன்னெறியார்\nஆரம் புனைந்து அணிந்த அம்மணி மேகலை\nபாரம் சுமந்து பயிலுமே - வீரர்க்கும்\nஓசை ஒலியும் உடைத்து.' },
+  { label: 'Pahrodai — 6 Lines', text: 'வான்மழை பெய்து வழிந்தோடும் வாரிபோல்\nயான்பெற்ற செல்வமும் ஈகையே - வான்பொருளும்\nஇல்லார்க்கு ஈவதே இன்பமென எண்ணுவார்\nநல்லார் ஒருவரே நற்பயனாம் - புல்லார்க்கும்\nஎல்லாம் வழங்கி மகிழ்வதே - மெல்லியல்\nநல்லார் செயல்.' },
+  { label: 'Kali Venba — 13 Lines', text: 'பூமேவு செங்கமலப் புத்தேளும் தேறரிய\nபாமேவு தெய்வப் பழமறையும் - தேமேவு\nநாதமும் நாதாந்த முடிவும் நவைதீர்ந்த\nபோதமும் காணாத போதமாய் - ஆதிநடு\nஅந்தம் கடந்தநித்தி யானந்த போதமாய்ப்\nபந்தம் தணந்த பரஞ்சுடராய் - வந்த\nஅடியார் இதயத் தாமரை மேலமர்ந்த\nநெடியான் மருகன் நிமலன் - வடியார்\nவேலோன் மயில்வீரன் வெற்றிப் புயத்தவன்\nகாலோன் வணங்கும் கதிரவன் - மேலோர்\nபுகழும் புகழவன் பொன்னடி போற்றி\nஇகழும் வினைதீர்க்கும் ஈசன் - மகனாய்\nவந்துதித்த கந்தன் மலரடி போற்றி.' },
+];
+
+let engine = null;
+let currentPaa = null;
+let currentAnalysis = null;
+let selectedWordIndex = null;
+
+// DOM references
+const inputTextarea = document.getElementById('input-text');
+const btnAnalyze = document.getElementById('btn-analyze');
+const sampleSelect = document.getElementById('sample-select');
+const loadingBar = document.getElementById('loading-bar');
+const verseZone = document.getElementById('verse-zone');
+const detailZone = document.getElementById('detail-zone');
+const validationZone = document.getElementById('validation-zone');
+const detailBackdrop = document.getElementById('detail-backdrop');
+
+// ===== Initialization =====
+
+async function initWasm() {
+  loadingBar.style.display = 'block';
+  btnAnalyze.disabled = true;
+
+  try {
+    const wasmModule = await import('../../wasm/pkg/tamil_prosody_wasm.js');
+    await wasmModule.default();
+    engine = new wasmModule.TamilProsodyEngine();
+    loadingBar.style.display = 'none';
+    btnAnalyze.disabled = false;
+    if (inputTextarea.value.trim()) {
+      analyze();
+    }
+  } catch (err) {
+    loadingBar.innerHTML = `<span style="color: var(--color-error)">Failed to load engine: ${err.message}</span>`;
+    console.error('WASM init error:', err);
+  }
+}
+
+// ===== Analysis =====
+
+async function analyze() {
+  const input = inputTextarea.value.trim();
+  if (!input || !engine) return;
+
+  btnAnalyze.disabled = true;
+  btnAnalyze.textContent = 'Analyzing...';
+
+  try {
+    const resultJson = await engine.process(input);
+    const { paa, analysis } = parseEngineOutput(resultJson);
+
+    currentPaa = paa;
+    currentAnalysis = analysis;
+    selectedWordIndex = null;
+
+    renderVerse(verseZone, paa, handleWordClick, selectedWordIndex);
+
+    // Render analysis: classification + compact tag grid
+    renderAnalysis(validationZone, analysis, handleTagClick);
+
+    closeDetail();
+  } catch (err) {
+    console.error('Analysis error:', err);
+    verseZone.innerHTML = `<div class="loading-bar" style="color: var(--color-error)">Analysis failed: ${err.message}</div>`;
+    verseZone.classList.add('visible');
+  } finally {
+    btnAnalyze.disabled = false;
+    btnAnalyze.textContent = 'Analyze';
+  }
+}
+
+// ===== Word Selection =====
+
+function handleWordClick(word, solIndex) {
+  selectedWordIndex = solIndex;
+  renderVerse(verseZone, currentPaa, handleWordClick, selectedWordIndex);
+  renderWordDetail(detailZone, word, currentPaa);
+  detailBackdrop.classList.add('visible');
+}
+
+// ===== Tag Selection =====
+
+function handleTagClick(tagKey, tags) {
+  selectedWordIndex = null;
+  renderVerse(verseZone, currentPaa, handleWordClick, selectedWordIndex);
+  renderTagDetail(detailZone, tagKey, tags);
+  detailBackdrop.classList.add('visible');
+}
+
+// ===== Detail Panel Close =====
+
+function closeDetail() {
+  detailZone.innerHTML = '';
+  detailZone.classList.remove('visible');
+  detailBackdrop.classList.remove('visible');
+  selectedWordIndex = null;
+  if (currentPaa) {
+    renderVerse(verseZone, currentPaa, handleWordClick, selectedWordIndex);
+  }
+}
+
+// ===== Event Wiring =====
+
+btnAnalyze.addEventListener('click', analyze);
+
+inputTextarea.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    analyze();
+  }
+});
+
+sampleSelect.addEventListener('change', () => {
+  const idx = parseInt(sampleSelect.value, 10);
+  if (idx >= 0 && idx < SAMPLE_VERSES.length) {
+    inputTextarea.value = SAMPLE_VERSES[idx].text;
+    if (engine) analyze();
+  }
+});
+
+// Detail panel close handlers
+detailBackdrop.addEventListener('click', closeDetail);
+
+detailZone.addEventListener('detail-close', closeDetail);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && detailZone.classList.contains('visible')) {
+    closeDetail();
+  }
+});
+
+// Populate sample select
+SAMPLE_VERSES.forEach((k, i) => {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = k.label;
+  sampleSelect.appendChild(opt);
+});
+
+// Pre-fill with Kural #1
+inputTextarea.value = SAMPLE_VERSES[0].text;
+
+// Start
+initWasm();

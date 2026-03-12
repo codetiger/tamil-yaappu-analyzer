@@ -1,0 +1,64 @@
+{
+  "id": "analysis_a5_ornamentation",
+  "name": "A5 Ornamentation Tags",
+  "channel": "analysis",
+  "priority": 5,
+  "version": 1,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "a5_etukai",
+      "name": "A5: Etukai",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.etukai",
+              "logic": {"var": "data.paa.ani.etukai_present"}
+            },
+            {
+              "path": "data.analysis.tags.etukai_detail",
+              "logic": {"var": "data.paa.ani.etukai_detail"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a5_monai",
+      "name": "A5: Monai",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {"path": "data.analysis.tags.monai", "logic": {"var": "data.paa.ani.monai_present"}},
+            {
+              "path": "data.analysis.tags.monai_detail",
+              "logic": {"var": "data.paa.ani.monai_detail"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a5_iyaipu",
+      "name": "A5: Iyaipu",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.iyaipu",
+              "logic": {"var": "data.paa.ani.iyaipu_present"}
+            },
+            {
+              "path": "data.analysis.tags.iyaipu_detail",
+              "logic": {"var": "data.paa.ani.iyaipu_detail"}
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

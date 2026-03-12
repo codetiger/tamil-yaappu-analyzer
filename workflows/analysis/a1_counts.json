@@ -1,0 +1,40 @@
+{
+  "id": "analysis_a1_counts",
+  "name": "A1 Basic Counts",
+  "channel": "analysis",
+  "priority": 1,
+  "version": 1,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "a1_adi_count",
+      "name": "A1: Line Count",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.classification.adi_count",
+              "logic": {"length": {"var": "data.paa.adikal"}}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a1_sol_count",
+      "name": "A1: Word Count",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.classification.sol_count",
+              "logic": {"var": "data.paa.original_sol_count"}
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

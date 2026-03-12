@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Compiler-style validator for Thirukural (Tamil verse) compositions. Checks 7-word Tamil verse against structural, prosodic, thalai (junction), ornamentation, and semantic rules. Built on the **dataflow-rs** workflow engine with **datalogic-rs** (JSONLogic) for declarative validation rules.
+Tamil prosody **analyzer and classifier** for verse compositions. Analyzes Tamil text to produce word breakdowns, prosodic classifications, and analysis tags with reasoning. Built on the **dataflow-rs** workflow engine with **datalogic-rs** (JSONLogic) for declarative analysis rules.
 
 ## Build & Test Commands
 
 ```bash
 cargo build                        # Build
-cargo test                         # Run all tests (52 unit + 52 integration)
+cargo test                         # Run all tests (56 unit + 52 integration)
 cargo test --lib                   # Unit tests only
 cargo test --test integration_tests # Integration tests only
 cargo test test_name               # Run a single test by name
@@ -22,26 +22,32 @@ RUST_LOG=debug cargo run           # Run with debug logging
 
 ## Architecture
 
-### Pipeline (Preprocessor → Workflow Rules)
+### Pipeline (Preprocessor → Analysis Workflows)
 
-The Rust `Preprocessor` is **meter-agnostic** — it enriches raw Tamil text into structured prosodic data. Meter-specific validation lives in JSON workflow files processed by `dataflow-rs`.
+The Rust `Preprocessor` is **meter-agnostic** — it enriches raw Tamil text into structured prosodic data (`PaaData`). Classification and tagging live in JSON `map` workflow files processed by `dataflow-rs`.
 
 **Preprocessor pipeline** (`src/preprocessor.rs`):
-NFC normalize → script validate → danda strip → **sandhi resolve** → grapheme extract → syllabify → asai classify → seer classify → **ani compute** → **compound decompose** → junction (thalai) data
+NFC normalize → script validate → danda strip → **sandhi resolve** → grapheme extract → syllabify → asai classify → seer classify → **ani compute** (with detail strings) → **compound decompose** → junction (thalai) data (with type/validity) → eetru classification
 
-**Workflow layers** (processed in priority order):
+**Analysis workflow layers** (processed in priority order, all use `map` function):
 1. `workflows/preprocessor.json` — calls the Rust preprocessor custom function
-2. `workflows/venba/kural/l1_structural.json` — word count, line count rules
-3. `workflows/venba/l2_seer.json` — syllabic meter (seer) validation
-4. `workflows/venba/l3_vendalai.json` — junction (thalai/vendalai) rules with `is_intra_compound` filtering
-5. `workflows/venba/l4_ornamentation.json` — etukai/monai/iyaipu (alliteration/rhyme)
+2. `workflows/analysis/a1_classify.json` — paa family + venba sub-type classification with reasoning
+3. `workflows/analysis/a2_structural.json` — structural tags (valid_tamil, no_empty_words, sol_per_adi)
+4. `workflows/analysis/a3_seer.json` — seer/meter tags (eetru_type, kutrilugaram, overflow, seer_pattern)
+5. `workflows/analysis/a4_thalai.json` — junction tags (thalai_all_valid, thalai_types)
+6. `workflows/analysis/a5_ornamentation.json` — etukai/monai/iyaipu tags with detail strings
+
+**Output structure:**
+- `data.paa` — Full prosodic breakdown (PaaData)
+- `data.analysis.classification` — paa_family, venba_type, reasoning
+- `data.analysis.tags` — Boolean/string tags with detail strings
 
 ### Key Design Patterns
 
-- **Separation of concerns**: Rust handles Tamil linguistic analysis; JSON handles rule evaluation. To add/modify validation rules, edit workflow JSON files. To fix linguistic analysis, edit Rust code.
+- **Separation of concerns**: Rust handles Tamil linguistic analysis; JSON `map` workflows handle classification and tagging. To add/modify analysis rules, edit workflow JSON files. To fix linguistic analysis, edit Rust code.
 - **Compound word handling**: Sandhi resolution and compound decomposition expand words for prosodic analysis, but ornamentation (ani) is computed from **pre-expansion** word positions.
-- **L3/L4 rules** use `W_`/`I_` severity (warnings/info), not `E_` (errors).
-- **L3 vendalai rules** filter on `is_intra_compound == false` to skip junctions within compound sub-units.
+- **Thalai analysis**: Each junction has `thalai_type`, `thalai_valid`, and `thalai_detail` computed in Rust. Workflow a4 summarizes these into tags.
+- **Classification framework**: Currently classifies Kural Venba (2 lines, 7 words, 4+3). Other types return "unknown". Extend a1_classify.json for new types.
 
 ### Tamil Modules (`src/tamil/`)
 
@@ -54,8 +60,8 @@ NFC normalize → script validate → danda strip → **sandhi resolve** → gra
 
 ### Data Model (`src/types.rs`)
 
-`PaaData` is the central enriched structure containing: raw input, word/line data, seer classifications, junction (thalai) data, ornamentation (ani) data, and diagnostics.
+`PaaData` is the central enriched structure containing: raw input, word/line data, seer classifications, junction (thalai) data with type/validity, ornamentation (ani) data with detail strings, and eetru classification.
 
 ## Corpus
 
-`kural.json` contains all 1330 Thirukurals used for integration testing. All must pass with zero `E_` errors.
+`kural.json` contains all 1330 Thirukurals used for integration testing. All must classify as `kural_venba`.

@@ -161,7 +161,7 @@ pub fn preprocess(raw_input: &str) -> PaaData {
     let mut sorkal: Vec<SolData> = Vec::new();
     let mut word_in_line_count: Vec<usize> = vec![0; lines.len()];
 
-    for (global_idx, (line_idx, raw_word)) in all_words.iter().enumerate() {
+    for (line_idx, raw_word) in all_words.iter() {
         let adi_idanam = word_in_line_count[*line_idx];
         word_in_line_count[*line_idx] += 1;
 

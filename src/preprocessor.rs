@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use dataflow_rs::engine::{
     error::{DataflowError, Result},
-    functions::{config::FunctionConfig, AsyncFunctionHandler},
+    functions::{AsyncFunctionHandler, config::FunctionConfig},
     message::{Change, Message},
 };
 use datalogic_rs::DataLogic;
@@ -27,7 +27,7 @@ impl AsyncFunctionHandler for Preprocessor {
             _ => {
                 return Err(DataflowError::Validation(
                     "Expected custom function config".to_string(),
-                ))
+                ));
             }
         };
 

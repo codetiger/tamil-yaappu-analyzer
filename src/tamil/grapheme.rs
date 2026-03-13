@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::unicode::{
-    is_aytham, is_consonant, is_pulli, is_vowel, is_vowel_matra, matra_vowel_length, vowel_length,
-    VowelLength,
+    VowelLength, is_aytham, is_consonant, is_pulli, is_vowel, is_vowel_matra, matra_vowel_length,
+    vowel_length,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -2,7 +2,7 @@ use dataflow_rs::engine::message::Message;
 use serde_json::json;
 use std::sync::Arc;
 
-use tamil_prosody_validator::{create_engine, PaaData};
+use tamil_prosody_validator::{PaaData, create_engine};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

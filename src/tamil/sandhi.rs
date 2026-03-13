@@ -213,8 +213,8 @@ mod tests {
         // படாஅர் syllables: [ப(kuril,open), டா(nedil,open), அர்(kuril,closed)]
         // kuril+nedil = Nirai: [Nirai("படா"), Neer("அர்")] = 2 asais
         assert_eq!(asai_before.len(), 2); // 2 asais without pluti resolution
-                                          // படார் syllables: [ப(kuril,open), டார்(nedil,closed)]
-                                          // kuril+nedil = Nirai: [Nirai("படார்")] = 1 asai
+        // படார் syllables: [ப(kuril,open), டார்(nedil,closed)]
+        // kuril+nedil = Nirai: [Nirai("படார்")] = 1 asai
         assert_eq!(asai_after.len(), 1); // 1 asai with pluti resolution
     }
 }

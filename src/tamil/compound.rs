@@ -4,9 +4,9 @@
 /// that should be decomposed at asai-level boundaries into valid sub-units
 /// (1-3 asais each = Iyarseer or Venseer).
 use super::grapheme::extract_graphemes;
-use super::prosody::{classify_asai, classify_seer, SeerCategory};
+use super::prosody::{SeerCategory, classify_asai, classify_seer};
 use super::syllable::syllabify;
-use super::unicode::{is_consonant, is_vowel_matra, matra_to_vowel, PULLI};
+use super::unicode::{PULLI, is_consonant, is_vowel_matra, matra_to_vowel};
 
 /// Attempt to decompose a compound word into valid prosodic sub-units.
 ///

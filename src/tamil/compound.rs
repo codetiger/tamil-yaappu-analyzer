@@ -30,10 +30,10 @@ pub fn decompose_compound(analysis_text: &str) -> Option<Vec<String>> {
     }
 
     // For 6+ asai words, try ternary splits
-    if asai_count >= 6 {
-        if let Some(split) = find_best_ternary_split(&syllables) {
-            return Some(split);
-        }
+    if asai_count >= 6
+        && let Some(split) = find_best_ternary_split(&syllables)
+    {
+        return Some(split);
     }
 
     None

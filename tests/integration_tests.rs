@@ -1514,15 +1514,10 @@ async fn test_engine_kali_venba_classification() {
 
 #[tokio::test]
 async fn test_engine_non_venba_graceful_unknown() {
-    // 6 lines with last line having 2 words (not venba's required 3)
+    // 2 lines with 5+3 words (not venba's required 4+3)
     // Should classify as "unknown" without error
     let msg = run_engine(
-        "வான்மழை பெய்து வழிந்தோடும் வாரிபோல்\n\
-         யான்பெற்ற செல்வமும் ஈகையே - வான்பொருளும்\n\
-         இல்லார்க்கு ஈவதே இன்பமென எண்ணுவார்\n\
-         நல்லார் ஒருவரே நற்பயனாம் - புல்லார்க்கும்\n\
-         எல்லாம் வழங்கி மகிழ்வதே - மெல்லியல்\n\
-         நல்லார் செயல்.",
+        "அகர முதல எழுத்தெல்லாம் ஆதி பகவன்\nமுதற்றே உலகு தமிழ்",
     )
     .await;
     assert_eq!(get_classification(&msg, "paa_family"), json!("unknown"));

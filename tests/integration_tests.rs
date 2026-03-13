@@ -1516,10 +1516,7 @@ async fn test_engine_kali_venba_classification() {
 async fn test_engine_non_venba_graceful_unknown() {
     // 2 lines with 5+3 words (not venba's required 4+3)
     // Should classify as "unknown" without error
-    let msg = run_engine(
-        "அகர முதல எழுத்தெல்லாம் ஆதி பகவன்\nமுதற்றே உலகு தமிழ்",
-    )
-    .await;
+    let msg = run_engine("அகர முதல எழுத்தெல்லாம் ஆதி பகவன்\nமுதற்றே உலகு தமிழ்").await;
     assert_eq!(get_classification(&msg, "paa_family"), json!("unknown"));
     assert_eq!(get_classification(&msg, "venba_type"), json!("unknown"));
 }

@@ -156,6 +156,8 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 [[package]]
 name = "dataflow-rs"
 version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fba48325d4f9454a76b738ce68075e7be78e18f1721130bcd4347083f7552e89"
 dependencies = [
  "async-trait",
  "chrono",

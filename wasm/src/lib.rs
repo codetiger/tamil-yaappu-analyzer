@@ -4,7 +4,7 @@ use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
 
-use tamil_prosody_validator::create_engine;
+use tamil_yaappu_analyzer::create_engine;
 
 #[wasm_bindgen(start)]
 pub fn init() {

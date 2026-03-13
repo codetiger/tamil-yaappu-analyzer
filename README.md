@@ -1,4 +1,4 @@
-# Tamil Prosody Analyzer
+# Tamil Yaappu Analyzer
 
 A prosodic analysis engine for Tamil verse. Given any Tamil text, it produces a rich structural breakdown — graphemes, syllables, metrical units (asai), feet (seer), inter-word junctions (thalai), and ornamentation patterns (etukai, monai, iyaipu).
 
@@ -161,7 +161,7 @@ No Rust code changes required. The existing Venba/Kural rules under `workflows/v
 
 For example, Aasiriyappa rules would check for different line counts, different permitted seer combinations, and Aasiriya-specific junction (thalai) patterns — all expressible as JSONLogic over the same `PaaData` structure.
 
-## Tamil Prosody Concepts
+## Tamil Yaappu Concepts
 
 | Term | Tamil | Meaning |
 |------|-------|---------|

@@ -43,7 +43,7 @@ async function initWasm() {
   btnAnalyze.disabled = true;
 
   try {
-    const wasmModule = await import('../pkg/tamil_prosody_wasm.js');
+    const wasmModule = await import('../pkg/tamil_yaappu_wasm.js');
     await wasmModule.default();
     engine = new wasmModule.TamilProsodyEngine();
     loadingBar.style.display = 'none';

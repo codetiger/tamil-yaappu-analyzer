@@ -46,8 +46,8 @@ jobs:
         run: |
           mkdir -p _site/pkg
           cp -r web/* _site/
-          cp wasm/pkg/tamil_prosody_wasm_bg.wasm _site/pkg/
-          cp wasm/pkg/tamil_prosody_wasm.js _site/pkg/
+          cp wasm/pkg/tamil_yaappu_wasm_bg.wasm _site/pkg/
+          cp wasm/pkg/tamil_yaappu_wasm.js _site/pkg/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

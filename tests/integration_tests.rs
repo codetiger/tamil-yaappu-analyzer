@@ -2,9 +2,9 @@ use dataflow_rs::engine::message::Message;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tamil_prosody_validator::create_engine;
-use tamil_prosody_validator::preprocessor::preprocess;
-use tamil_prosody_validator::tamil::prosody::{AsaiType, SeerCategory, SeerType};
+use tamil_yaappu_analyzer::create_engine;
+use tamil_yaappu_analyzer::preprocessor::preprocess;
+use tamil_yaappu_analyzer::tamil::prosody::{AsaiType, SeerCategory, SeerType};
 
 const KURAL_JSON: &str = include_str!("../kural.json");
 
@@ -169,7 +169,7 @@ fn test_grapheme_details_word0() {
     assert_eq!(w.ezhuthukkal[0].text, "அ");
     assert_eq!(
         w.ezhuthukkal[0].vagai,
-        tamil_prosody_validator::tamil::grapheme::GraphemeType::Uyir
+        tamil_yaappu_analyzer::tamil::grapheme::GraphemeType::Uyir
     );
     assert_eq!(w.ezhuthukkal[1].text, "க");
     assert_eq!(w.ezhuthukkal[2].text, "ர");
@@ -456,19 +456,19 @@ fn test_monai_vowel_detection_in_corpus() {
         let w0_is_vowel = paa.sorkal[0]
             .ezhuthukkal
             .first()
-            .map(|e| e.vagai == tamil_prosody_validator::tamil::grapheme::GraphemeType::Uyir)
+            .map(|e| e.vagai == tamil_yaappu_analyzer::tamil::grapheme::GraphemeType::Uyir)
             .unwrap_or(false);
 
         if w0_is_vowel {
             let w2_is_vowel = paa.sorkal[2]
                 .ezhuthukkal
                 .first()
-                .map(|e| e.vagai == tamil_prosody_validator::tamil::grapheme::GraphemeType::Uyir)
+                .map(|e| e.vagai == tamil_yaappu_analyzer::tamil::grapheme::GraphemeType::Uyir)
                 .unwrap_or(false);
             let w1_is_vowel = paa.sorkal[1]
                 .ezhuthukkal
                 .first()
-                .map(|e| e.vagai == tamil_prosody_validator::tamil::grapheme::GraphemeType::Uyir)
+                .map(|e| e.vagai == tamil_yaappu_analyzer::tamil::grapheme::GraphemeType::Uyir)
                 .unwrap_or(false);
 
             let primary = w2_is_vowel && mk0.is_some() && mk0 == mk2;

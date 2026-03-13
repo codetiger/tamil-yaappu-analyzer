@@ -79,6 +79,19 @@ async function analyze() {
     // Render analysis: classification + compact tag grid
     renderAnalysis(validationZone, analysis, handleTagClick);
 
+    // First-time click hint
+    if (!localStorage.getItem('yaappu-hint-shown')) {
+      const hint = document.createElement('div');
+      hint.className = 'click-hint';
+      hint.textContent = 'Tap a word for details';
+      hint.addEventListener('click', () => {
+        hint.remove();
+        localStorage.setItem('yaappu-hint-shown', '1');
+      });
+      verseZone.insertBefore(hint, verseZone.firstChild);
+      localStorage.setItem('yaappu-hint-shown', '1');
+    }
+
     closeDetail();
   } catch (err) {
     console.error('Analysis error:', err);

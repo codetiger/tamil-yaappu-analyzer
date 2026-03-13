@@ -123,8 +123,16 @@ function renderClassification(container, classification) {
 }
 
 function renderTagGrid(container, tags, onTagClick) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'tag-grid-wrapper';
+
+  const toggleBtn = document.createElement('button');
+  toggleBtn.className = 'tag-toggle-btn';
+  toggleBtn.innerHTML = 'Show analysis tags <span class="toggle-chevron">\u203A</span>';
+  wrapper.appendChild(toggleBtn);
+
   const grid = document.createElement('div');
-  grid.className = 'tag-grid';
+  grid.className = 'tag-grid collapsed';
 
   TAG_GROUPS.forEach(group => {
     const groupEl = document.createElement('div');
@@ -148,7 +156,23 @@ function renderTagGrid(container, tags, onTagClick) {
     grid.appendChild(groupEl);
   });
 
-  container.appendChild(grid);
+  toggleBtn.addEventListener('click', () => {
+    const isExpanded = grid.classList.contains('expanded');
+    if (isExpanded) {
+      grid.classList.remove('expanded');
+      grid.classList.add('collapsed');
+      toggleBtn.classList.remove('expanded');
+      toggleBtn.innerHTML = 'Show analysis tags <span class="toggle-chevron">\u203A</span>';
+    } else {
+      grid.classList.remove('collapsed');
+      grid.classList.add('expanded');
+      toggleBtn.classList.add('expanded');
+      toggleBtn.innerHTML = 'Hide analysis tags <span class="toggle-chevron">\u203A</span>';
+    }
+  });
+
+  wrapper.appendChild(grid);
+  container.appendChild(wrapper);
 }
 
 function createTagItem(key, tags, onTagClick) {

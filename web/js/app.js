@@ -82,7 +82,7 @@ async function analyze() {
     closeDetail();
   } catch (err) {
     console.error('Analysis error:', err);
-    verseZone.innerHTML = `<div class="loading-bar" style="color: var(--color-error)">Analysis failed: ${err.message}</div>`;
+    verseZone.innerHTML = `<div class="loading-bar" style="color: var(--color-error)">Analysis failed: ${err.message || err}</div>`;
     verseZone.classList.add('visible');
   } finally {
     btnAnalyze.disabled = false;

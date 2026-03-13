@@ -34,7 +34,7 @@
                       {"==": [{"var": ""}, 4]}
                     ]
                   },
-                  {"==": [{"slice": [{"var": "data.analysis.tags.sol_per_adi"}, -1]}, [3]]}
+                  {"all": [{"slice": [{"var": "data.analysis.tags.sol_per_adi"}, -1]}, {"==": [{"var": ""}, 3]}]}
                 ]},
                 "venba",
                 "unknown"

@@ -126,9 +126,15 @@
                 "sindhiyal_venba",
                 {"and": [
                   {"==": [{"var": "data.analysis.classification.primary_pa"}, "venba"]},
+                  {"==": [{"var": "data.analysis.tags.adi_count"}, 4]},
+                  {"==": [{"var": "data.analysis.tags.has_thanichol"}, true]}
+                ]},
+                "nerisai_venba",
+                {"and": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa"}, "venba"]},
                   {"==": [{"var": "data.analysis.tags.adi_count"}, 4]}
                 ]},
-                "venba_4_line",
+                "innisai_venba",
                 {"and": [
                   {"==": [{"var": "data.analysis.classification.primary_pa"}, "venba"]},
                   {">=": [{"var": "data.analysis.tags.adi_count"}, 13]}
@@ -150,6 +156,33 @@
                   ]}
                 ]},
                 "nerisai_asiriyappa",
+                {"and": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa"}, "asiriyappa"]},
+                  {"some": [
+                    {"var": "data.paa.adikal"},
+                    {"and": [
+                      {"==": [{"var": "line_position"}, "first"]},
+                      {"==": [{"var": "adi_type"}, "alavadi"]}
+                    ]}
+                  ]},
+                  {"some": [
+                    {"var": "data.paa.adikal"},
+                    {"and": [
+                      {"==": [{"var": "line_position"}, "last"]},
+                      {"==": [{"var": "adi_type"}, "alavadi"]}
+                    ]}
+                  ]},
+                  {"all": [
+                    {"var": "data.paa.adikal"},
+                    {"or": [
+                      {"==": [{"var": "line_position"}, "first"]},
+                      {"==": [{"var": "line_position"}, "last"]},
+                      {"==": [{"var": "adi_type"}, "kuraladi"]},
+                      {"==": [{"var": "adi_type"}, "chinthadi"]}
+                    ]}
+                  ]}
+                ]},
+                "inaikural_asiriyappa",
                 {"and": [
                   {"==": [{"var": "data.analysis.classification.primary_pa"}, "asiriyappa"]},
                   {"all": [

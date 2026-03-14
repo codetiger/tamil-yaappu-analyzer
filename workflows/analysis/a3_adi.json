@@ -118,6 +118,34 @@
                   {"==": [{"var": "word_count"}, 0]}
                 ]
               }
+            },
+            {
+              "path": "data.analysis.tags.has_thanichol",
+              "logic": {
+                "and": [
+                  {">=": [{"length": {"var": "data.paa.adikal"}}, 4]},
+                  {"==": [{"var": "data.paa.adikal.1.word_count"}, 4]},
+                  {"==": [
+                    {"var": "data.paa.adikal.1.sorkal.3.irandaam_ezhuthu"},
+                    {"var": "data.paa.adikal.0.sorkal.0.irandaam_ezhuthu"}
+                  ]},
+                  {"==": [{"var": "data.paa.adikal.1.sorkal.3.is_ventalai"}, true]},
+                  {"or": [
+                    {"and": [
+                      {"==": [{"var": "data.paa.adikal.1.sorkal.3.seer_group"}, "ma_seer"]},
+                      {"==": [{"var": "data.paa.adikal.2.sorkal.0.asai_seq.0"}, "nirai"]}
+                    ]},
+                    {"and": [
+                      {"==": [{"var": "data.paa.adikal.1.sorkal.3.seer_group"}, "vila_seer"]},
+                      {"==": [{"var": "data.paa.adikal.2.sorkal.0.asai_seq.0"}, "neer"]}
+                    ]},
+                    {"and": [
+                      {"==": [{"var": "data.paa.adikal.1.sorkal.3.seer_group"}, "kaai_seer"]},
+                      {"==": [{"var": "data.paa.adikal.2.sorkal.0.asai_seq.0"}, "neer"]}
+                    ]}
+                  ]}
+                ]
+              }
             }
           ]
         }

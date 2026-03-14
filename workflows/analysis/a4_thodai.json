@@ -145,6 +145,38 @@
                 "iru_vikarpam",
                 "pala_vikarpam"
               ]}
+            },
+            {
+              "path": "temp_data.rhyme_schema_reduce",
+              "logic": {
+                "reduce": [
+                  {"var": "data.analysis.tags.rhyme_id_list"},
+                  {
+                    "schema": {"merge": [
+                      {"var": "accumulator.schema"},
+                      [{"if": [
+                        {"==": [{"var": "current"}, {"var": "accumulator.seen.0"}]}, "A",
+                        {"==": [{"var": "current"}, {"var": "accumulator.seen.1"}]}, "B",
+                        {"==": [{"var": "current"}, {"var": "accumulator.seen.2"}]}, "C",
+                        {"==": [{"length": {"var": "accumulator.seen"}}, 0]}, "A",
+                        {"==": [{"length": {"var": "accumulator.seen"}}, 1]}, "B",
+                        {"==": [{"length": {"var": "accumulator.seen"}}, 2]}, "C",
+                        "D"
+                      ]}]
+                    ]},
+                    "seen": {"if": [
+                      {"in": [{"var": "current"}, {"var": "accumulator.seen"}]},
+                      {"var": "accumulator.seen"},
+                      {"merge": [{"var": "accumulator.seen"}, [{"var": "current"}]]}
+                    ]}
+                  },
+                  {"schema": [], "seen": []}
+                ]
+              }
+            },
+            {
+              "path": "data.analysis.tags.rhyme_schema",
+              "logic": {"var": "temp_data.rhyme_schema_reduce.schema"}
             }
           ]
         }

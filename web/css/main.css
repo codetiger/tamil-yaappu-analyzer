@@ -56,43 +56,6 @@ body {
   border-bottom: 1px solid var(--color-border-light);
 }
 
-.input-section.collapsed .input-textarea {
-  display: none;
-}
-
-.input-section.collapsed .input-summary {
-  display: flex;
-}
-
-.input-summary {
-  display: none;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) 0;
-  font-size: 16px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.input-summary-text {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-style: italic;
-}
-
-.input-summary .btn-edit {
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 4px 12px;
-  font-size: 12px;
-  font-family: inherit;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
 .input-bar {
   display: flex;
   gap: var(--space-sm);
@@ -487,13 +450,6 @@ body {
   border: 1px dashed rgba(158, 158, 158, 0.25);
 }
 
-.junction-connector.junction-compound {
-  background: rgba(224, 224, 224, 0.06);
-  color: var(--color-text-muted);
-  border: 1px dotted rgba(224, 224, 224, 0.4);
-  font-size: 12px;
-}
-
 .word-tag.tag-kutri {
   background: rgba(123, 31, 162, 0.08);
   color: var(--color-etukai);
@@ -682,14 +638,6 @@ body {
 
 .footer-link:hover {
   color: var(--color-accent);
-}
-
-.footer-icon {
-  vertical-align: middle;
-}
-
-.footer-separator {
-  color: var(--color-border);
 }
 
 /* ===== Mobile (<768px) ===== */

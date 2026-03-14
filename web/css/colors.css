@@ -1,15 +1,5 @@
 /* Tamil Yaappu Analyzer — Color Tokens */
 :root {
-  /* Grapheme types (Ezhuthu) */
-  --color-uyir: #5B9BD5;
-  --color-mei: #E06666;
-  --color-uyirmei: #8E7CC3;
-  --color-aytham: #D5A847;
-
-  /* Vowel length */
-  --color-kuril: #93C47D;
-  --color-nedil: #6AA84F;
-
   /* Asai (mora) types */
   --color-neer: #3D85C6;
   --color-nirai: #E69138;
@@ -21,22 +11,6 @@
   --color-venseer-border: #3D85C6;
   --color-overflow: #F4CCCC;
   --color-overflow-border: #CC0000;
-
-  /* 12 Vaaipadu seer types — Iyarseer family */
-  --color-thema: #2E7D32;
-  --color-pulima: #43A047;
-  --color-koovilam: #66BB6A;
-  --color-karuvilam: #81C784;
-
-  /* 12 Vaaipadu seer types — Venseer family */
-  --color-themangai: #1565C0;
-  --color-themangani: #1976D2;
-  --color-koovilankai: #1E88E5;
-  --color-koovilankani: #2196F3;
-  --color-pulimangai: #42A5F5;
-  --color-pulimangani: #64B5F6;
-  --color-karuvilangai: #90CAF9;
-  --color-karuvilankani: #BBDEFB;
 
   /* Validation severities */
   --color-error: #CC0000;
@@ -51,8 +25,6 @@
   --color-junction-valid: #4CAF50;
   --color-junction-warning: #FF9800;
   --color-junction-crossline: #9E9E9E;
-  --color-junction-compound: #E0E0E0;
-
   /* Ornamentation (ani) */
   --color-etukai: #7B1FA2;
   --color-monai: #00838F;
@@ -70,8 +42,6 @@
   --color-accent: #3D85C6;
   --color-accent-hover: #356FA8;
   --color-selected: #E8F0FE;
-  --color-backdrop: rgba(0, 0, 0, 0.3);
-
   /* Spacing scale */
   --space-xs: 4px;
   --space-sm: 8px;
@@ -83,8 +53,6 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
-  --shadow-sheet: 0 -4px 24px rgba(0, 0, 0, 0.12);
-
   /* Radii */
   --radius-sm: 6px;
   --radius-md: 10px;

@@ -62,48 +62,6 @@ export function groupWordsByLine(paa) {
 }
 
 /**
- * Map syllables to asai groups for a given word.
- * @param {Array} syllables - SyllableData array
- * @param {Array} asaikal - AsaiData array
- * @returns {Array<{ vagai: string, text: string, syllables: Array }>}
- */
-export function mapSyllablesToAsai(syllables, asaikal) {
-  if (!syllables?.length || !asaikal?.length) return [];
-  let sylIdx = 0;
-  return asaikal.map(asai => {
-    const syls = [];
-    let accumulated = '';
-    while (sylIdx < syllables.length && accumulated.length < asai.text.length) {
-      syls.push(syllables[sylIdx]);
-      accumulated += syllables[sylIdx].text;
-      sylIdx++;
-    }
-    return { ...asai, syllables: syls };
-  });
-}
-
-/**
- * Map graphemes (ezhuthukkal) to syllables for a given word.
- * @param {Array} ezhuthukkal - EzhuthuData array
- * @param {Array} syllables - SyllableData array
- * @returns {Array<{ text: string, alavu: string, is_closed: boolean, matrai: number, graphemes: Array }>}
- */
-export function mapGraphemesToSyllables(ezhuthukkal, syllables) {
-  if (!ezhuthukkal?.length || !syllables?.length) return [];
-  let gIdx = 0;
-  return syllables.map(syl => {
-    const graphemes = [];
-    let accumulated = '';
-    while (gIdx < ezhuthukkal.length && accumulated.length < syl.text.length) {
-      graphemes.push(ezhuthukkal[gIdx]);
-      accumulated += ezhuthukkal[gIdx].text;
-      gIdx++;
-    }
-    return { ...syl, graphemes };
-  });
-}
-
-/**
  * Convert snake_case to Title Case for display.
  * e.g. "uyirmei" -> "Uyirmei", "thema" -> "Thema"
  */
@@ -138,41 +96,3 @@ export const ASAI_NAMES = {
   nirai: 'நிரை',
 };
 
-/** Tamil display names for seer categories */
-export const SEER_CATEGORY_NAMES = {
-  iyarseer: 'இயற்சீர்',
-  venseer: 'வெண்சீர்',
-  overflow: 'மிகை',
-};
-
-/** Tamil display names for grapheme types */
-export const GRAPHEME_TYPE_NAMES = {
-  uyir: 'உயிர்',
-  mei: 'மெய்',
-  uyirmei: 'உயிர்மெய்',
-  aytham: 'ஆய்தம்',
-};
-
-/** Tamil display names for vowel length */
-export const VOWEL_LENGTH_NAMES = {
-  kuril: 'குறில்',
-  nedil: 'நெடில்',
-};
-
-/**
- * Categorize errors by severity based on code prefix.
- * @param {Array} errors - Array of { code, message }
- * @returns {{ errors: Array, warnings: Array, infos: Array }}
- */
-export function categorizeErrors(errors) {
-  const errs = [];
-  const warns = [];
-  const infos = [];
-  (errors || []).forEach(e => {
-    const code = e.code || '';
-    if (code.startsWith('E_')) errs.push(e);
-    else if (code.startsWith('W_')) warns.push(e);
-    else infos.push(e);
-  });
-  return { errors: errs, warnings: warns, infos };
-}

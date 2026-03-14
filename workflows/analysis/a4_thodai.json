@@ -1,0 +1,154 @@
+{
+  "id": "analysis_a4_thodai",
+  "name": "A4 Thodai (Rhyme & Pattern) Analysis",
+  "channel": "analysis",
+  "priority": 4,
+  "version": 1,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "a4_rhyme_data",
+      "name": "A4: Compute rhyme_id_list, kadai_list, monai_list",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.rhyme_id_list",
+              "logic": {
+                "map": [
+                  {"var": "data.paa.adikal"},
+                  {"var": "sorkal.0.irandaam_ezhuthu"}
+                ]
+              }
+            },
+            {
+              "path": "temp_data.kadai_list",
+              "logic": {
+                "map": [
+                  {"var": "data.paa.adikal"},
+                  {"reduce": [
+                    {"var": "sorkal"},
+                    {"var": "current.kadai_ezhuthu"},
+                    null
+                  ]}
+                ]
+              }
+            },
+            {
+              "path": "temp_data.monai_list",
+              "logic": {
+                "map": [
+                  {"var": "data.paa.adikal"},
+                  {"var": "sorkal.0.muthal_ezhuthu"}
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a4_unique_sets",
+      "name": "A4: Compute unique sets for rhyme, kadai, monai",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "temp_data.unique_rhymes",
+              "logic": {
+                "reduce": [
+                  {"var": "data.analysis.tags.rhyme_id_list"},
+                  {"if": [
+                    {"in": [{"var": "current"}, {"var": "accumulator"}]},
+                    {"var": "accumulator"},
+                    {"merge": [{"var": "accumulator"}, [{"var": "current"}]]}
+                  ]},
+                  []
+                ]
+              }
+            },
+            {
+              "path": "temp_data.unique_kadai",
+              "logic": {
+                "reduce": [
+                  {"var": "temp_data.kadai_list"},
+                  {"if": [
+                    {"in": [{"var": "current"}, {"var": "accumulator"}]},
+                    {"var": "accumulator"},
+                    {"merge": [{"var": "accumulator"}, [{"var": "current"}]]}
+                  ]},
+                  []
+                ]
+              }
+            },
+            {
+              "path": "temp_data.unique_monai",
+              "logic": {
+                "reduce": [
+                  {"var": "temp_data.monai_list"},
+                  {"if": [
+                    {"in": [{"var": "current"}, {"var": "accumulator"}]},
+                    {"var": "accumulator"},
+                    {"merge": [{"var": "accumulator"}, [{"var": "current"}]]}
+                  ]},
+                  []
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a4_rhyme_analysis",
+      "name": "A4: Etukai, Monai, Iyaipu, Vikarpam analysis",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.etukai",
+              "logic": {"==": [{"length": {"var": "temp_data.unique_rhymes"}}, 1]}
+            },
+            {
+              "path": "data.analysis.tags.etukai_detail",
+              "logic": {"var": "data.analysis.tags.rhyme_id_list"}
+            },
+            {
+              "path": "data.analysis.tags.monai",
+              "logic": {"==": [{"length": {"var": "temp_data.unique_monai"}}, 1]}
+            },
+            {
+              "path": "data.analysis.tags.monai_detail",
+              "logic": {"var": "temp_data.monai_list"}
+            },
+            {
+              "path": "data.analysis.tags.is_iyaipu",
+              "logic": {"==": [{"length": {"var": "temp_data.unique_kadai"}}, 1]}
+            },
+            {
+              "path": "data.analysis.tags.iyaipu_detail",
+              "logic": {"var": "temp_data.kadai_list"}
+            },
+            {
+              "path": "data.analysis.tags.vikarpam_count",
+              "logic": {"length": {"var": "temp_data.unique_rhymes"}}
+            },
+            {
+              "path": "data.analysis.tags.vikarpam_type",
+              "logic": {"if": [
+                {"==": [{"length": {"var": "temp_data.unique_rhymes"}}, 1]},
+                "oru_vikarpam",
+                {"==": [{"length": {"var": "temp_data.unique_rhymes"}}, 2]},
+                "iru_vikarpam",
+                "pala_vikarpam"
+              ]}
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

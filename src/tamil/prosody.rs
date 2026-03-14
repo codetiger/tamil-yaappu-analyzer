@@ -108,38 +108,79 @@ pub fn classify_asai(syllables: &[TamilSyllable]) -> Vec<Asai> {
     classify_asai_with_boundaries(syllables, &[])
 }
 
+/// Kutriyalikaram (குற்றியலிகரம்): ை (ai) in non-word-initial position
+/// is metrically short (kuril) rather than long (nedil).
+/// Returns true if this syllable's ை should be treated as kuril.
+fn is_kutriyalikaram(syl: &TamilSyllable, index: usize) -> bool {
+    if index == 0 || syl.alavu != VowelLength::Nedil {
+        return false;
+    }
+    // Check if the syllable contains the ை matra (U+0BC8)
+    syl.text.contains('\u{0BC8}')
+}
+
+/// Kutriyalukaram consonants: word-final kuril-open syllable ending in these
+/// is absorbed into the preceding Neer asai.
+const KUTRIYALUKARAM_ENDINGS: [&str; 6] = ["கு", "சு", "டு", "து", "பு", "று"];
+
 /// Classify syllables into asai with morpheme boundary awareness.
 /// When a morpheme boundary falls between two kuril-open syllables,
 /// the first kuril is emitted as standalone Neer instead of combining into Nirai.
+///
+/// Applies three classical prosody rules:
+/// 1. Kutriyalikaram: non-initial ை treated as kuril (can start Nirai)
+/// 2. Kutriyalukaram isolation: word-final {கு,சு,டு,து,பு,று} is excluded from
+///    Nirai grouping so it doesn't create kani_seer (3-asai ending in Nirai)
+/// 3. Kutriyalukaram absorption: the isolated kutriyalukaram syllable is absorbed
+///    into the preceding Neer asai when possible
 pub fn classify_asai_with_boundaries(
     syllables: &[TamilSyllable],
     morpheme_boundaries: &[usize],
 ) -> Vec<Asai> {
+    if syllables.is_empty() {
+        return vec![];
+    }
+
+    // Check if last syllable is kutriyalukaram — if so, exclude it from the
+    // main grouping loop to prevent it from forming a Nirai with the preceding
+    // syllable. This ensures words like "எனப்படுவது" get kaai_seer (not kani_seer).
+    let last_is_ku = syllables.len() >= 2
+        && syllables.last().is_some_and(|s| {
+            s.alavu == VowelLength::Kuril
+                && !s.is_closed
+                && KUTRIYALUKARAM_ENDINGS.contains(&s.text.as_str())
+        });
+
+    // Process syllables up to (but not including) the kutriyalukaram ending
+    let end = if last_is_ku {
+        syllables.len() - 1
+    } else {
+        syllables.len()
+    };
+
     let mut asaikal = Vec::new();
     let mut i = 0;
 
-    while i < syllables.len() {
+    while i < end {
         let syl = &syllables[i];
 
-        if syl.alavu == VowelLength::Nedil {
-            // Rule 1: Nedil (open or closed) -> Neer
-            asaikal.push(Asai {
-                vagai: AsaiType::Neer,
-                text: syl.text.clone(),
-            });
-            i += 1;
-        } else if syl.is_closed {
-            // Rule 2: Kuril closed -> Neer
+        // Kutriyalikaram: non-initial ை is metrically kuril-open
+        let effective_kuril_open = if is_kutriyalikaram(syl, i) {
+            true // treat as kuril-open regardless of actual alavu
+        } else {
+            syl.alavu == VowelLength::Kuril && !syl.is_closed
+        };
+
+        if !effective_kuril_open {
+            // Nedil or kuril-closed -> Neer
             asaikal.push(Asai {
                 vagai: AsaiType::Neer,
                 text: syl.text.clone(),
             });
             i += 1;
         } else {
-            // Kuril open — may combine with next syllable to form Nirai
-            // Per Yapparungalak Karigai: kuril + kuril = Nirai, kuril + nedil = Nirai
-            // Covers R-ASAI-08..R-ASAI-11 (Table 2 rows 5-8)
-            if i + 1 < syllables.len() {
+            // Kuril open (or kutriyalikaram) — may combine with next syllable to form Nirai
+            if i + 1 < end {
                 // Check if morpheme boundary prevents nirai grouping
                 if morpheme_boundaries.contains(&(i + 1)) {
                     // Morpheme boundary: emit first kuril as standalone Neer
@@ -149,7 +190,7 @@ pub fn classify_asai_with_boundaries(
                     });
                     i += 1;
                 } else {
-                    // Rule 3: Kuril open + next syllable (kuril or nedil) -> Nirai
+                    // Kuril open + next syllable -> Nirai
                     let combined = format!("{}{}", syl.text, syllables[i + 1].text);
                     asaikal.push(Asai {
                         vagai: AsaiType::Nirai,
@@ -158,13 +199,29 @@ pub fn classify_asai_with_boundaries(
                     i += 2;
                 }
             } else {
-                // Word-final kuril open -> standalone Neer
+                // Last syllable in range — standalone Neer
                 asaikal.push(Asai {
                     vagai: AsaiType::Neer,
                     text: syl.text.clone(),
                 });
                 i += 1;
             }
+        }
+    }
+
+    // Kutriyalukaram: add the excluded syllable back, absorbing into prev Neer
+    // when possible. If prev is Nirai, it stays as a standalone Neer.
+    if last_is_ku {
+        let ku_text = &syllables[syllables.len() - 1].text;
+        if asaikal.last().is_some_and(|a| a.vagai == AsaiType::Neer) {
+            // Absorb into preceding Neer
+            asaikal.last_mut().unwrap().text.push_str(ku_text);
+        } else {
+            // Standalone Neer after Nirai
+            asaikal.push(Asai {
+                vagai: AsaiType::Neer,
+                text: ku_text.clone(),
+            });
         }
     }
 

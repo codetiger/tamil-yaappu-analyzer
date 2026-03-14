@@ -1,0 +1,127 @@
+{
+  "id": "analysis_a3_adi",
+  "name": "A3 Adi (Line Structure) Analysis",
+  "channel": "analysis",
+  "priority": 3,
+  "version": 1,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "a3_enrich_adi",
+      "name": "A3: Enrich adikal with word_count, adi_type, line_position, is_standard_venba_line, has_thanichol",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "temp_data.adi_reduce",
+              "logic": {
+                "reduce": [
+                  {"var": "data.paa.adikal"},
+                  {
+                    "total": {"var": "accumulator.total"},
+                    "items": {"merge": [
+                      {"var": "accumulator.items"},
+                      [{
+                        "raw": {"var": "current.raw"},
+                        "sorkal": {"var": "current.sorkal"},
+                        "word_count": {"length": {"var": "current.sorkal"}},
+                        "adi_type": {"if": [
+                          {"==": [{"length": {"var": "current.sorkal"}}, 2]},
+                          "kuraladi",
+                          {"==": [{"length": {"var": "current.sorkal"}}, 3]},
+                          "chinthadi",
+                          {"==": [{"length": {"var": "current.sorkal"}}, 4]},
+                          "alavadi",
+                          {"==": [{"length": {"var": "current.sorkal"}}, 5]},
+                          "neduladi",
+                          "kazhineduladi"
+                        ]},
+                        "line_position": {"if": [
+                          {"==": [{"length": {"var": "accumulator.items"}}, 0]},
+                          "first",
+                          {"==": [
+                            {"length": {"var": "accumulator.items"}},
+                            {"-": [{"var": "accumulator.total"}, 1]}
+                          ]},
+                          "last",
+                          {"==": [
+                            {"length": {"var": "accumulator.items"}},
+                            {"-": [{"var": "accumulator.total"}, 2]}
+                          ]},
+                          "penultimate",
+                          "middle"
+                        ]},
+                        "is_standard_venba_line": {"and": [
+                          {"==": [{"length": {"var": "current.sorkal"}}, 4]},
+                          {"all": [
+                            {"var": "current.sorkal"},
+                            {"or": [
+                              {"==": [{"var": "is_ventalai"}, null]},
+                              {"==": [{"var": "is_ventalai"}, true]}
+                            ]}
+                          ]}
+                        ]},
+                        "has_thanichol": false
+                      }]
+                    ]}
+                  },
+                  {"total": {"length": {"var": "data.paa.adikal"}}, "items": []}
+                ]
+              }
+            },
+            {
+              "path": "data.paa.adikal",
+              "logic": {"var": "temp_data.adi_reduce.items"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a3_adi_tags",
+      "name": "A3: Adi summary tags",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.adi_count",
+              "logic": {"length": {"var": "data.paa.adikal"}}
+            },
+            {
+              "path": "data.analysis.tags.sol_per_adi",
+              "logic": {
+                "map": [
+                  {"var": "data.paa.adikal"},
+                  {"var": "word_count"}
+                ]
+              }
+            },
+            {
+              "path": "data.analysis.tags.valid_tamil",
+              "logic": {
+                "none": [
+                  {"var": "data.paa.adikal"},
+                  {"some": [
+                    {"var": "sorkal"},
+                    {"==": [{"var": "asai_count"}, 0]}
+                  ]}
+                ]
+              }
+            },
+            {
+              "path": "data.analysis.tags.no_empty_words",
+              "logic": {
+                "none": [
+                  {"var": "data.paa.adikal"},
+                  {"==": [{"var": "word_count"}, 0]}
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

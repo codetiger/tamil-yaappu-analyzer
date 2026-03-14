@@ -1,196 +1,27 @@
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
-use crate::tamil::grapheme::{GraphemeType, TamilGrapheme};
-use crate::tamil::prosody::{Asai, AsaiType, SeerCategory, SeerType};
-use crate::tamil::syllable::TamilSyllable;
-use crate::tamil::unicode::VowelLength;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ThalaiType {
-    IyarseerVendalai,
-    VenseerVendalai,
-    CrossCategory,
-    IntraCompound,
-    Unknown,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EetruType {
-    Naal,
-    Malar,
-    Kaasu,
-    Pirappu,
-    Overflow,
-}
-
-impl fmt::Display for EetruType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            EetruType::Naal => write!(f, "naal"),
-            EetruType::Malar => write!(f, "malar"),
-            EetruType::Kaasu => write!(f, "kaasu"),
-            EetruType::Pirappu => write!(f, "pirappu"),
-            EetruType::Overflow => write!(f, "overflow"),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaaData {
-    pub raw_input: String,
-    pub original_sol_count: usize,
-    pub eetru_sol: EetruSolData,
-    pub ani: AniData,
+    pub raw: String,
     pub adikal: Vec<AdiData>,
-    pub sorkal: Vec<SolData>,
-    pub thalaikal: Vec<ThalaiData>,
-    pub diagnostics: Vec<Value>,
-}
-
-/// Computed ornamentation (அணி) data — etukai, monai, iyaipu.
-/// Computed from original (pre-compound-expansion) word positions.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AniData {
-    pub etukai_present: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub etukai_detail: Option<String>,
-    pub monai_present: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub monai_detail: Option<String>,
-    pub iyaipu_present: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub iyaipu_detail: Option<String>,
-}
-
-/// Computed eetru (final) word data for easy access in workflow rules.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EetruSolData {
-    pub asai_count: usize,
-    pub seer_eerru: AsaiType,
-    pub kadai_ezhuthu_mei: Option<String>,
-    pub kadai_ezhuthu_alavu: Option<VowelLength>,
-    pub seer_category: SeerCategory,
-    pub is_kutrilugaram: bool,
-    pub eetru_type: EetruType,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdiData {
-    pub text: String,
-    pub sol_varisaikal: Vec<usize>,
-    pub seer_vagaikal: Vec<SeerType>,
-    pub logical_sol_count: usize,
-    pub syllable_count_total: usize,
-    pub matrai_total: u32,
+    pub raw: String,
+    pub sorkal: Vec<SolData>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SolData {
-    pub adi_index: usize,
-    pub adi_idanam: usize,
-    pub raw_text: String,
-    pub normalized_text: String,
-    pub phonological_text: Option<String>,
-    pub is_valid_script: bool,
-    pub invalid_chars: Vec<String>,
-    pub is_empty: bool,
-    pub non_tamil_stripped: bool,
-    pub ezhuthukkal: Vec<EzhuthuData>,
-    pub muthal_ezhuthu_monai_kurippu: Option<String>,
+    pub raw: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub muthal_ezhuthu: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub irandaam_ezhuthu: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub kadai_ezhuthu: Option<String>,
-    pub kadai_ezhuthu_mei: Option<String>,
-    pub kadai_ezhuthu_alavu: Option<VowelLength>,
-    pub kadai_ezhuthu_vagai: Option<GraphemeType>,
-    pub syllables: Vec<SyllableData>,
-    pub asaikal: Vec<AsaiData>,
-    pub asai_amaivu: String,
-    pub seer_vagai: SeerType,
-    pub seer_category: SeerCategory,
-    pub asai_count: usize,
-    pub seer_muthal: AsaiType,
-    pub seer_eerru: AsaiType,
-    pub syllabification_failed: bool,
-    pub ambiguous_asai: bool,
-    pub has_compound_boundary: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub compound_source_index: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub compound_part: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub compound_source_text: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EzhuthuData {
-    pub text: String,
-    pub vagai: GraphemeType,
-    pub mei: Option<String>,
-    pub alavu: Option<VowelLength>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SyllableData {
-    pub text: String,
-    pub alavu: VowelLength,
-    pub is_closed: bool,
-    pub matrai: u8,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AsaiData {
-    pub vagai: AsaiType,
-    pub text: String,
-}
-
-impl From<&TamilGrapheme> for EzhuthuData {
-    fn from(g: &TamilGrapheme) -> Self {
-        Self {
-            text: g.text.clone(),
-            vagai: g.vagai,
-            mei: g.mei.map(|c| c.to_string()),
-            alavu: g.alavu,
-        }
-    }
-}
-
-impl From<&TamilSyllable> for SyllableData {
-    fn from(s: &TamilSyllable) -> Self {
-        Self {
-            text: s.text.clone(),
-            alavu: s.alavu,
-            is_closed: s.is_closed,
-            matrai: s.matrai,
-        }
-    }
-}
-
-impl From<&Asai> for AsaiData {
-    fn from(a: &Asai) -> Self {
-        Self {
-            vagai: a.vagai,
-            text: a.text.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ThalaiData {
-    pub from_sol_index: usize,
-    pub to_sol_index: usize,
-    pub from_seer_category: SeerCategory,
-    pub to_seer_category: SeerCategory,
-    pub eerru_asai: AsaiType,
-    pub muthal_asai: AsaiType,
-    pub is_cross_adi: bool,
-    pub is_intra_compound: bool,
-    pub is_to_eetru: bool,
-    pub thalai_type: ThalaiType,
-    pub thalai_valid: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub thalai_detail: Option<String>,
+    pub kadai_alavu: Option<String>,
+    pub asai_seq: Vec<String>,
 }

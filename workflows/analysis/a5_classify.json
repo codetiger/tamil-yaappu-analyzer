@@ -1,0 +1,220 @@
+{
+  "id": "analysis_a5_classify",
+  "name": "A5 Final Pa (Classification)",
+  "channel": "analysis",
+  "priority": 5,
+  "version": 1,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "a5_primary_pa",
+      "name": "A5: Primary Paa Family Classification",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.classification.primary_pa",
+              "logic": {"if": [
+                {"and": [
+                  {"==": [{"var": "data.analysis.tags.valid_tamil"}, true]},
+                  {"==": [{"var": "data.analysis.tags.no_empty_words"}, true]},
+                  {"==": [{"var": "data.analysis.tags.syllabification_ok"}, true]},
+                  {"==": [{"var": "data.analysis.tags.thalai_all_valid"}, true]},
+                  {"==": [{"var": "data.analysis.tags.has_kani_seer"}, false]},
+                  {"==": [{"var": "data.analysis.tags.has_overflow"}, false]},
+                  {"in": [
+                    {"var": "data.analysis.tags.eetru_type"},
+                    ["naal", "malar", "kaasu", "pirappu"]
+                  ]},
+                  {">=": [{"var": "data.analysis.tags.adi_count"}, 2]},
+                  {"all": [
+                    {"slice": [{"var": "data.analysis.tags.sol_per_adi"}, -1]},
+                    {"==": [{"var": ""}, 3]}
+                  ]}
+                ]},
+                "venba",
+                {"and": [
+                  {"==": [{"var": "data.analysis.tags.valid_tamil"}, true]},
+                  {"some": [
+                    {"var": "data.analysis.tags.thalai_types"},
+                    {"or": [
+                      {"==": [{"var": ""}, "ner_onru_aasiriyathalai"]},
+                      {"==": [{"var": ""}, "nirai_onru_aasiriyathalai"]}
+                    ]}
+                  ]},
+                  {"none": [
+                    {"var": "data.analysis.tags.thalai_types"},
+                    {"or": [
+                      {"==": [{"var": ""}, "kalithalai"]},
+                      {"==": [{"var": ""}, "oonru_vanjithalai"]},
+                      {"==": [{"var": ""}, "oonraatha_vanjithalai"]}
+                    ]}
+                  ]}
+                ]},
+                "asiriyappa",
+                {"and": [
+                  {"==": [{"var": "data.analysis.tags.valid_tamil"}, true]},
+                  {"some": [
+                    {"var": "data.analysis.tags.thalai_types"},
+                    {"or": [
+                      {"==": [{"var": ""}, "oonru_vanjithalai"]},
+                      {"==": [{"var": ""}, "oonraatha_vanjithalai"]}
+                    ]}
+                  ]}
+                ]},
+                "vanjippa",
+                {"and": [
+                  {"==": [{"var": "data.analysis.tags.valid_tamil"}, true]},
+                  {"some": [
+                    {"var": "data.analysis.tags.thalai_types"},
+                    {"==": [{"var": ""}, "kalithalai"]}
+                  ]}
+                ]},
+                "kalippa",
+                "unknown"
+              ]}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a5_osai_type",
+      "name": "A5: Osai (Sound) Type",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.classification.osai_type",
+              "logic": {"if": [
+                {"==": [{"var": "data.analysis.classification.primary_pa"}, "venba"]},
+                "seppal",
+                {"==": [{"var": "data.analysis.classification.primary_pa"}, "asiriyappa"]},
+                "ahaval",
+                {"==": [{"var": "data.analysis.classification.primary_pa"}, "kalippa"]},
+                "thullal",
+                {"==": [{"var": "data.analysis.classification.primary_pa"}, "vanjippa"]},
+                "thoongal",
+                null
+              ]}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a5_granularity",
+      "name": "A5: Granularity (Sub-Type) Classification",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.classification.granularity_type",
+              "logic": {"if": [
+                {"and": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa"}, "venba"]},
+                  {"==": [{"var": "data.analysis.tags.adi_count"}, 2]}
+                ]},
+                "kural_venba",
+                {"and": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa"}, "venba"]},
+                  {"==": [{"var": "data.analysis.tags.adi_count"}, 3]}
+                ]},
+                "sindhiyal_venba",
+                {"and": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa"}, "venba"]},
+                  {"==": [{"var": "data.analysis.tags.adi_count"}, 4]}
+                ]},
+                "venba_4_line",
+                {"and": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa"}, "venba"]},
+                  {">=": [{"var": "data.analysis.tags.adi_count"}, 13]}
+                ]},
+                "pahrodai_venba",
+                {"and": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa"}, "venba"]},
+                  {">=": [{"var": "data.analysis.tags.adi_count"}, 5]}
+                ]},
+                "venba",
+                {"and": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa"}, "asiriyappa"]},
+                  {"some": [
+                    {"var": "data.paa.adikal"},
+                    {"and": [
+                      {"==": [{"var": "line_position"}, "penultimate"]},
+                      {"==": [{"var": "adi_type"}, "chinthadi"]}
+                    ]}
+                  ]}
+                ]},
+                "nerisai_asiriyappa",
+                {"and": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa"}, "asiriyappa"]},
+                  {"all": [
+                    {"var": "data.paa.adikal"},
+                    {"==": [{"var": "adi_type"}, "alavadi"]}
+                  ]}
+                ]},
+                "nilaimandila_asiriyappa",
+                {"==": [{"var": "data.analysis.classification.primary_pa"}, "asiriyappa"]},
+                "asiriyappa",
+                {"and": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa"}, "vanjippa"]},
+                  {"all": [
+                    {"var": "data.paa.adikal"},
+                    {"==": [{"var": "adi_type"}, "kuraladi"]}
+                  ]}
+                ]},
+                "kuraladi_vanjippa",
+                {"and": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa"}, "vanjippa"]},
+                  {"all": [
+                    {"var": "data.paa.adikal"},
+                    {"==": [{"var": "adi_type"}, "chinthadi"]}
+                  ]}
+                ]},
+                "chinthadi_vanjippa",
+                {"==": [{"var": "data.analysis.classification.primary_pa"}, "vanjippa"]},
+                "vanjippa",
+                {"==": [{"var": "data.analysis.classification.primary_pa"}, "kalippa"]},
+                "kalippa",
+                "unknown"
+              ]}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a5_is_valid",
+      "name": "A5: Validation check",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.classification.is_valid",
+              "logic": {"if": [
+                {"==": [{"var": "data.analysis.classification.primary_pa"}, "venba"]},
+                {"and": [
+                  {"==": [{"var": "data.analysis.tags.thalai_all_valid"}, true]},
+                  {"in": [
+                    {"var": "data.analysis.tags.eetru_type"},
+                    ["naal", "malar", "kaasu", "pirappu"]
+                  ]},
+                  {"all": [
+                    {"slice": [{"var": "data.analysis.tags.sol_per_adi"}, -1]},
+                    {"==": [{"var": ""}, 3]}
+                  ]}
+                ]},
+                {"!==": [{"var": "data.analysis.classification.primary_pa"}, "unknown"]}
+              ]}
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

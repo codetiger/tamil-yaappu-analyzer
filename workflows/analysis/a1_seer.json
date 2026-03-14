@@ -1,0 +1,221 @@
+{
+  "id": "analysis_a1_seer",
+  "name": "A1 Seer (Meter) Analysis",
+  "channel": "analysis",
+  "priority": 1,
+  "version": 1,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "a1_enrich_sorkal",
+      "name": "A1: Enrich sorkal with asai_count, vaaippaadu, seer_group, is_kutriyalukaram",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.paa.adikal",
+              "logic": {
+                "map": [
+                  {"var": "data.paa.adikal"},
+                  {
+                    "raw": {"var": "raw"},
+                    "sorkal": {
+                      "map": [
+                        {"var": "sorkal"},
+                        {
+                          "raw": {"var": "raw"},
+                          "muthal_ezhuthu": {"var": "muthal_ezhuthu"},
+                          "irandaam_ezhuthu": {"var": "irandaam_ezhuthu"},
+                          "kadai_ezhuthu": {"var": "kadai_ezhuthu"},
+                          "kadai_alavu": {"var": "kadai_alavu"},
+                          "asai_seq": {"var": "asai_seq"},
+                          "asai_count": {"length": {"var": "asai_seq"}},
+                          "is_kutriyalukaram": {"and": [
+                            {"in": [{"var": "kadai_ezhuthu"}, ["கு", "சு", "டு", "து", "பு", "று"]]},
+                            {"or": [
+                              {">=": [{"length": {"var": "asai_seq"}}, 2]},
+                              {"==": [{"var": "kadai_alavu"}, "nedil"]}
+                            ]}
+                          ]},
+                          "vaaippaadu": {"if": [
+                            {"==": [{"length": {"var": "asai_seq"}}, 1]},
+                            {"if": [
+                              {"==": [{"var": "asai_seq.0"}, "neer"]},
+                              "neer_asai",
+                              "nirai_asai"
+                            ]},
+                            {"==": [{"length": {"var": "asai_seq"}}, 2]},
+                            {"if": [
+                              {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
+                              "thema",
+                              {"and": [{"==": [{"var": "asai_seq.0"}, "nirai"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
+                              "pulima",
+                              {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "nirai"]}]},
+                              "koovila",
+                              "karuvila"
+                            ]},
+                            {"==": [{"length": {"var": "asai_seq"}}, 3]},
+                            {"if": [
+                              {"==": [{"var": "asai_seq.2"}, "neer"]},
+                              {"if": [
+                                {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
+                                "themangai",
+                                {"and": [{"==": [{"var": "asai_seq.0"}, "nirai"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
+                                "pulimangai",
+                                {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "nirai"]}]},
+                                "koovilangai",
+                                "karuvilangai"
+                              ]},
+                              {"if": [
+                                {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
+                                "themankani",
+                                {"and": [{"==": [{"var": "asai_seq.0"}, "nirai"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
+                                "pulimankani",
+                                {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "nirai"]}]},
+                                "koovilankani",
+                                "karuvilankani"
+                              ]}
+                            ]},
+                            {">": [{"length": {"var": "asai_seq"}}, 3]},
+                            "overflow",
+                            null
+                          ]},
+                          "seer_group": {"if": [
+                            {"==": [{"length": {"var": "asai_seq"}}, 1]},
+                            {"if": [
+                              {"==": [{"var": "asai_seq.0"}, "neer"]},
+                              "ma_seer",
+                              "vila_seer"
+                            ]},
+                            {"==": [{"length": {"var": "asai_seq"}}, 2]},
+                            {"if": [
+                              {"==": [{"var": "asai_seq.1"}, "neer"]},
+                              "ma_seer",
+                              "vila_seer"
+                            ]},
+                            {"==": [{"length": {"var": "asai_seq"}}, 3]},
+                            {"if": [
+                              {"==": [{"var": "asai_seq.2"}, "neer"]},
+                              "kaai_seer",
+                              "kani_seer"
+                            ]},
+                            null
+                          ]}
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a1_eetru",
+      "name": "A1: Eetru pattern from last word of last line",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "temp_data.last_sorkal",
+              "logic": {
+                "reduce": [
+                  {"var": "data.paa.adikal"},
+                  {"var": "current.sorkal"},
+                  []
+                ]
+              }
+            },
+            {
+              "path": "temp_data.eetru_arr",
+              "logic": {
+                "map": [
+                  {"slice": [{"var": "temp_data.last_sorkal"}, -1]},
+                  {"if": [
+                    {"==": [{"var": "asai_count"}, 1]},
+                    {"if": [
+                      {"==": [{"var": "asai_seq.0"}, "neer"]},
+                      "naal",
+                      "malar"
+                    ]},
+                    {"and": [
+                      {"==": [{"var": "asai_count"}, 2]},
+                      {"==": [{"var": "kadai_alavu"}, "kuril"]}
+                    ]},
+                    {"if": [
+                      {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
+                      "kaasu",
+                      {"and": [{"==": [{"var": "asai_seq.0"}, "nirai"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
+                      "pirappu",
+                      null
+                    ]},
+                    null
+                  ]}
+                ]
+              }
+            },
+            {
+              "path": "data.analysis.tags.eetru_type",
+              "logic": {"var": "temp_data.eetru_arr.0"}
+            },
+            {
+              "path": "temp_data.kutriyalukaram_arr",
+              "logic": {
+                "map": [
+                  {"slice": [{"var": "temp_data.last_sorkal"}, -1]},
+                  {"var": "is_kutriyalukaram"}
+                ]
+              }
+            },
+            {
+              "path": "data.analysis.tags.kutrilugaram",
+              "logic": {"var": "temp_data.kutriyalukaram_arr.0"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a1_summary",
+      "name": "A1: Seer summary tags",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.has_overflow",
+              "logic": {
+                "some": [
+                  {"var": "data.paa.adikal"},
+                  {"some": [{"var": "sorkal"}, {">": [{"var": "asai_count"}, 3]}]}
+                ]
+              }
+            },
+            {
+              "path": "data.analysis.tags.syllabification_ok",
+              "logic": {
+                "none": [
+                  {"var": "data.paa.adikal"},
+                  {"some": [{"var": "sorkal"}, {"==": [{"var": "asai_count"}, 0]}]}
+                ]
+              }
+            },
+            {
+              "path": "data.analysis.tags.has_kani_seer",
+              "logic": {
+                "some": [
+                  {"var": "data.paa.adikal"},
+                  {"some": [{"var": "sorkal"}, {"==": [{"var": "seer_group"}, "kani_seer"]}]}
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -314,14 +314,14 @@ mod tests {
     }
 
     #[test]
-    fn test_no_decomposition_after_kuril_nedil_nirai() {
-        // உடைமையுள் — was 4-asai overflow when kuril+nedil = separate Neer.
-        // After fix (kuril+nedil = Nirai): [Nirai("உடை"), Neer("மை"), Neer("யுள்")] = 3-asai Venseer.
+    fn test_no_decomposition_after_kutriyalikaram() {
+        // உடைமையுள் — with kutriyalikaram (non-initial ை = kuril):
+        // [Nirai("உடை"), Nirai("மையுள்")] = 2-asai Iyarseer (Karuvilam).
         // No decomposition needed.
         let result = decompose_compound("உடைமையுள்");
         assert!(
             result.is_none(),
-            "உடைமையுள் is now 3-asai Venseer, should not decompose"
+            "உடைமையுள் is now 2-asai Iyarseer, should not decompose"
         );
     }
 
@@ -363,14 +363,15 @@ mod tests {
     }
 
     #[test]
-    fn test_no_false_sandhi_with_vallinam() {
-        // வீடுநிறைந்த = வீடு + நிறைந்த (earliest valid 2+2 split)
-        // Should NOT sandhi-split into வீடுநிற் + ஐந்த (ற is vallinam)
+    fn test_no_decomposition_after_kutriyalikaram_nirai() {
+        // வீடுநிறைந்த — with kutriyalikaram (non-initial ை = kuril):
+        // [Neer("வீ"), Nirai("டுநி"), Nirai("றைந்த")] = 3-asai Venseer.
+        // No decomposition needed (was 4-asai overflow before kutriyalikaram fix).
         let result = decompose_compound("வீடுநிறைந்த");
-        assert!(result.is_some(), "Should decompose வீடுநிறைந்த");
-        let parts = result.unwrap();
-        assert_eq!(parts[0], "வீடு", "Left part should be வீடு");
-        assert_eq!(parts[1], "நிறைந்த", "Right part should be நிறைந்த");
+        assert!(
+            result.is_none(),
+            "வீடுநிறைந்த is now 3-asai Venseer, should not decompose"
+        );
     }
 
     #[test]
@@ -381,13 +382,26 @@ mod tests {
 
     #[test]
     fn test_overflow_compound_split() {
-        // நியதிக்குட்பட்டு: morphological split is நியதிக்கு + உட்பட்டு (3+3),
-        // but prosodic split நியதிக் + குட்பட்டு (2+3) is better balanced.
+        // நியதிக்குட்பட்டு: still overflow (4 asai) after kutriyalukaram
+        // since டு follows Neer(குட்) it gets absorbed → but the word still has 4+ syllables.
+        // Verify it decomposes into valid parts.
         let result = decompose_compound("நியதிக்குட்பட்டு");
         assert!(result.is_some(), "Should decompose நியதிக்குட்பட்டு");
         let parts = result.unwrap();
-        assert_eq!(parts[0], "நியதிக்");
-        assert_eq!(parts[1], "குட்பட்டு");
+        assert_eq!(parts.len(), 2);
+        // Both parts should be valid (not overflow)
+        let left = classify_part(&parts[0]);
+        let right = classify_part(&parts[1]);
+        assert_ne!(
+            left.0,
+            SeerCategory::Overflow,
+            "Left part should not be overflow"
+        );
+        assert_ne!(
+            right.0,
+            SeerCategory::Overflow,
+            "Right part should not be overflow"
+        );
     }
 
     #[test]

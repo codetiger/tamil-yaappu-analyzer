@@ -29,25 +29,25 @@ The Rust `Preprocessor` is **meter-agnostic** — it enriches raw Tamil text int
 **Preprocessor pipeline** (`src/preprocessor.rs`):
 NFC normalize → script validate → danda strip → **sandhi resolve** → grapheme extract → syllabify → asai classify → seer classify → **ani compute** (with detail strings) → **compound decompose** → junction (thalai) data (with type/validity) → eetru classification
 
-**Analysis workflow layers** (processed in priority order, all use `map` function):
+**Analysis workflow layers** (5 layers matching classical prosody theory, all use `map` function):
 1. `workflows/preprocessor.json` — calls the Rust preprocessor custom function
-2. `workflows/analysis/a1_classify.json` — paa family + venba sub-type classification with reasoning
-3. `workflows/analysis/a2_structural.json` — structural tags (valid_tamil, no_empty_words, sol_per_adi)
-4. `workflows/analysis/a3_seer.json` — seer/meter tags (eetru_type, kutrilugaram, overflow, seer_pattern)
-5. `workflows/analysis/a4_thalai.json` — junction tags (thalai_all_valid, thalai_types)
-6. `workflows/analysis/a5_ornamentation.json` — etukai/monai/iyaipu tags with detail strings
+2. `workflows/analysis/a1_seer.json` — Seer (meter): enriches words with asai_count, vaaippaadu, seer_group, is_kutriyalukaram; computes eetru pattern and summary tags (has_overflow, has_kani_seer)
+3. `workflows/analysis/a2_thalai.json` — Thalai (linkage): computes thalai_from_prev and is_ventalai between consecutive words; summary tags (thalai_all_valid, thalai_types, link_harmony)
+4. `workflows/analysis/a3_adi.json` — Adi (line structure): enriches lines with word_count, adi_type, line_position, is_standard_venba_line, has_thanichol; summary tags (sol_per_adi, valid_tamil)
+5. `workflows/analysis/a4_thodai.json` — Thodai (rhyme & pattern): computes rhyme_id_list, etukai, monai, is_iyaipu, vikarpam_count/type
+6. `workflows/analysis/a5_classify.json` — Final Pa (classification): primary_pa (venba/asiriyappa/kalippa/vanjippa), osai_type, granularity_type, is_valid
 
 **Output structure:**
-- `data.paa` — Full prosodic breakdown (PaaData)
-- `data.analysis.classification` — paa_family, venba_type, reasoning
-- `data.analysis.tags` — Boolean/string tags with detail strings
+- `data.paa` — Full prosodic breakdown with enriched word/line data
+- `data.analysis.classification` — primary_pa, osai_type, granularity_type, is_valid
+- `data.analysis.tags` — Boolean/string tags for all analysis layers
 
 ### Key Design Patterns
 
 - **Separation of concerns**: Rust handles Tamil linguistic analysis; JSON `map` workflows handle classification and tagging. To add/modify analysis rules, edit workflow JSON files. To fix linguistic analysis, edit Rust code.
 - **Compound word handling**: Sandhi resolution and compound decomposition expand words for prosodic analysis, but ornamentation (ani) is computed from **pre-expansion** word positions.
-- **Thalai analysis**: Each junction has `thalai_type`, `thalai_valid`, and `thalai_detail` computed in Rust. Workflow a4 summarizes these into tags.
-- **Classification framework**: Currently classifies Kural Venba (2 lines, 7 words, 4+3). Other types return "unknown". Extend a1_classify.json for new types.
+- **Thalai analysis**: Junction type and validity computed in workflow a2 via JSONLogic reduce, matching the 8 thalai mappings from classical prosody.
+- **Classification framework**: Classifies Venba (with sub-types: kural, sindhiyal, 4-line, pahrodai), Asiriyappa (nerisai, nilaimandila), Vanjippa (kuraladi, chinthadi), and Kalippa. Venba check runs first (strictest). Extend a5_classify.json for new rules.
 
 ### Tamil Modules (`src/tamil/`)
 

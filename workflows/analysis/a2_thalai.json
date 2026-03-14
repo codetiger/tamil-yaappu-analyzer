@@ -1,0 +1,167 @@
+{
+  "id": "analysis_a2_thalai",
+  "name": "A2 Thalai (Linkage) Analysis",
+  "channel": "analysis",
+  "priority": 2,
+  "version": 1,
+  "status": "active",
+  "tasks": [
+    {
+      "id": "a2_enrich_thalai",
+      "name": "A2: Enrich sorkal with thalai_from_prev and is_ventalai",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.paa.adikal",
+              "logic": {
+                "map": [
+                  {"var": "data.paa.adikal"},
+                  {
+                    "raw": {"var": "raw"},
+                    "sorkal": {
+                      "reduce": [
+                        {"var": "sorkal"},
+                        {"merge": [
+                          {"var": "accumulator"},
+                          [{
+                            "raw": {"var": "current.raw"},
+                            "muthal_ezhuthu": {"var": "current.muthal_ezhuthu"},
+                            "irandaam_ezhuthu": {"var": "current.irandaam_ezhuthu"},
+                            "kadai_ezhuthu": {"var": "current.kadai_ezhuthu"},
+                            "kadai_alavu": {"var": "current.kadai_alavu"},
+                            "asai_seq": {"var": "current.asai_seq"},
+                            "asai_count": {"var": "current.asai_count"},
+                            "vaaippaadu": {"var": "current.vaaippaadu"},
+                            "seer_group": {"var": "current.seer_group"},
+                            "is_kutriyalukaram": {"var": "current.is_kutriyalukaram"},
+                            "thalai_from_prev": {"if": [
+                              {"==": [{"length": {"var": "accumulator"}}, 0]},
+                              null,
+                              {"==": [
+                                {"reduce": [{"slice": [{"var": "accumulator"}, -1]}, {"var": "current.seer_group"}, null]},
+                                "ma_seer"
+                              ]},
+                              {"if": [
+                                {"==": [{"var": "current.asai_seq.0"}, "nirai"]},
+                                "iyarseer_ventalai",
+                                "ner_onru_aasiriyathalai"
+                              ]},
+                              {"==": [
+                                {"reduce": [{"slice": [{"var": "accumulator"}, -1]}, {"var": "current.seer_group"}, null]},
+                                "vila_seer"
+                              ]},
+                              {"if": [
+                                {"==": [{"var": "current.asai_seq.0"}, "neer"]},
+                                "iyarseer_ventalai",
+                                "nirai_onru_aasiriyathalai"
+                              ]},
+                              {"==": [
+                                {"reduce": [{"slice": [{"var": "accumulator"}, -1]}, {"var": "current.seer_group"}, null]},
+                                "kaai_seer"
+                              ]},
+                              {"if": [
+                                {"==": [{"var": "current.asai_seq.0"}, "neer"]},
+                                "venseer_ventalai",
+                                "kalithalai"
+                              ]},
+                              {"==": [
+                                {"reduce": [{"slice": [{"var": "accumulator"}, -1]}, {"var": "current.seer_group"}, null]},
+                                "kani_seer"
+                              ]},
+                              {"if": [
+                                {"==": [{"var": "current.asai_seq.0"}, "nirai"]},
+                                "oonru_vanjithalai",
+                                "oonraatha_vanjithalai"
+                              ]},
+                              null
+                            ]},
+                            "is_ventalai": {"if": [
+                              {"==": [{"length": {"var": "accumulator"}}, 0]},
+                              null,
+                              {"or": [
+                                {"and": [
+                                  {"==": [{"reduce": [{"slice": [{"var": "accumulator"}, -1]}, {"var": "current.seer_group"}, null]}, "ma_seer"]},
+                                  {"==": [{"var": "current.asai_seq.0"}, "nirai"]}
+                                ]},
+                                {"and": [
+                                  {"==": [{"reduce": [{"slice": [{"var": "accumulator"}, -1]}, {"var": "current.seer_group"}, null]}, "vila_seer"]},
+                                  {"==": [{"var": "current.asai_seq.0"}, "neer"]}
+                                ]},
+                                {"and": [
+                                  {"==": [{"reduce": [{"slice": [{"var": "accumulator"}, -1]}, {"var": "current.seer_group"}, null]}, "kaai_seer"]},
+                                  {"==": [{"var": "current.asai_seq.0"}, "neer"]}
+                                ]}
+                              ]}
+                            ]}
+                          }]
+                        ]},
+                        []
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a2_thalai_tags",
+      "name": "A2: Thalai summary tags",
+      "function": {
+        "name": "map",
+        "input": {
+          "mappings": [
+            {
+              "path": "data.analysis.tags.thalai_all_valid",
+              "logic": {
+                "all": [
+                  {"var": "data.paa.adikal"},
+                  {"all": [
+                    {"var": "sorkal"},
+                    {"or": [
+                      {"==": [{"var": "is_ventalai"}, null]},
+                      {"==": [{"var": "is_ventalai"}, true]}
+                    ]}
+                  ]}
+                ]
+              }
+            },
+            {
+              "path": "data.analysis.tags.thalai_types",
+              "logic": {
+                "reduce": [
+                  {"var": "data.paa.adikal"},
+                  {"merge": [
+                    {"var": "accumulator"},
+                    {"filter": [
+                      {"map": [{"var": "current.sorkal"}, {"var": "thalai_from_prev"}]},
+                      {"!==": [{"var": ""}, null]}
+                    ]}
+                  ]},
+                  []
+                ]
+              }
+            },
+            {
+              "path": "data.analysis.tags.link_harmony",
+              "logic": {"if": [
+                {"<=": [{"length": {"var": "data.analysis.tags.thalai_types"}}, 1]},
+                "consistent",
+                {"all": [
+                  {"var": "data.analysis.tags.thalai_types"},
+                  {"==": [{"var": ""}, {"var": "data.analysis.tags.thalai_types.0"}]}
+                ]},
+                "consistent",
+                "variable"
+              ]}
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

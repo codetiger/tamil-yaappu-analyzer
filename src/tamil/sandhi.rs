@@ -30,6 +30,37 @@ pub struct SandhiResult {
     pub pluti_count: usize,
     /// Whether a compound morpheme boundary was detected.
     pub has_compound_boundary: bool,
+    /// Whether kutriyalukaram + vowel merger was applied.
+    pub kutriyalukaram_merged: bool,
+}
+
+/// The six vallinam (hard) consonants that form kutriyalukaram with ு.
+const KUTRIYALUKARAM_CONSONANTS: [char; 6] = [
+    'க', // U+0B95
+    'ச', // U+0B9A
+    'ட', // U+0B9F
+    'த', // U+0BA4
+    'ப', // U+0BAA
+    'ற', // U+0BB1
+];
+
+/// Convert a standalone Tamil vowel letter (uyir) to its combining matra form.
+/// Returns None for அ (inherent vowel — no matra needed) and for non-vowel chars.
+fn vowel_to_matra(vowel: char) -> Option<char> {
+    match vowel {
+        '\u{0B86}' => Some('\u{0BBE}'), // ஆ → ா
+        '\u{0B87}' => Some('\u{0BBF}'), // இ → ி
+        '\u{0B88}' => Some('\u{0BC0}'), // ஈ → ீ
+        '\u{0B89}' => Some('\u{0BC1}'), // உ → ு
+        '\u{0B8A}' => Some('\u{0BC2}'), // ஊ → ூ
+        '\u{0B8E}' => Some('\u{0BC6}'), // எ → ெ
+        '\u{0B8F}' => Some('\u{0BC7}'), // ஏ → ே
+        '\u{0B90}' => Some('\u{0BC8}'), // ஐ → ை
+        '\u{0B92}' => Some('\u{0BCA}'), // ஒ → ொ
+        '\u{0B93}' => Some('\u{0BCB}'), // ஓ → ோ
+        '\u{0B94}' => Some('\u{0BCC}'), // ஔ → ௌ
+        _ => None,
+    }
 }
 
 /// Resolve sandhi in a single word for prosodic analysis.
@@ -42,6 +73,7 @@ pub fn resolve(text: &str) -> SandhiResult {
     let mut result = String::with_capacity(text.len());
     let mut pluti_count = 0;
     let mut has_compound_boundary = false;
+    let mut kutriyalukaram_merged = false;
     let mut i = 0;
 
     while i < chars.len() {
@@ -65,6 +97,34 @@ pub fn resolve(text: &str) -> SandhiResult {
             }
         }
 
+        // Kutriyalukaram + vowel merger:
+        // When ு (on a vallinam consonant) is followed by a vowel letter,
+        // the 'u' elides and the consonant merges with the following vowel.
+        // E.g., படிறுஇலவாம் → படிறிலவாம் (று+இ → றி)
+        if c == '\u{0BC1}'  // ு matra
+            && i >= 1
+            && KUTRIYALUKARAM_CONSONANTS.contains(&chars[i - 1])
+            && i + 1 < chars.len()
+            && super::unicode::is_vowel(chars[i + 1])
+        {
+            let vowel = chars[i + 1];
+            if vowel == '\u{0B85}' {
+                // அ — inherent vowel: just drop ு and அ, consonant keeps 'a'
+                i += 2;
+            } else if let Some(matra) = vowel_to_matra(vowel) {
+                // Replace ு with the vowel's matra form
+                result.push(matra);
+                i += 2;
+            } else {
+                result.push(c);
+                i += 1;
+                continue;
+            }
+            has_compound_boundary = true;
+            kutriyalukaram_merged = true;
+            continue;
+        }
+
         result.push(c);
         i += 1;
     }
@@ -74,6 +134,7 @@ pub fn resolve(text: &str) -> SandhiResult {
         pluti_resolved: pluti_count > 0,
         pluti_count,
         has_compound_boundary,
+        kutriyalukaram_merged,
     }
 }
 
@@ -171,6 +232,39 @@ mod tests {
         let r = resolve("தொழாஅர்");
         assert_eq!(r.phonological_text, "தொழார்");
         assert!(r.pluti_resolved);
+    }
+
+    #[test]
+    fn test_kutriyalukaram_vowel_merger() {
+        // படிறுஇலவாம்: று + இ → றி
+        let r = resolve("படிறுஇலவாம்");
+        assert_eq!(r.phonological_text, "படிறிலவாம்");
+        assert!(r.kutriyalukaram_merged);
+        assert!(r.has_compound_boundary);
+    }
+
+    #[test]
+    fn test_kutriyalukaram_vowel_merger_ka() {
+        // செருக்குஒழி: கு + ஒ → கொ
+        let r = resolve("செருக்குஒழி");
+        assert_eq!(r.phonological_text, "செருக்கொழி");
+        assert!(r.kutriyalukaram_merged);
+    }
+
+    #[test]
+    fn test_kutriyalukaram_vowel_merger_a() {
+        // படிறுஅவன்: று + அ → ற (inherent 'a')
+        let r = resolve("படிறுஅவன்");
+        assert_eq!(r.phonological_text, "படிறவன்");
+        assert!(r.kutriyalukaram_merged);
+    }
+
+    #[test]
+    fn test_no_kutriyalukaram_non_vallinam() {
+        // நிலவுஇல்லை: வு is NOT vallinam, no merger
+        let r = resolve("நிலவுஇல்லை");
+        assert!(!r.kutriyalukaram_merged);
+        assert_eq!(r.phonological_text, "நிலவுஇல்லை");
     }
 
     #[test]

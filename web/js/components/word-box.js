@@ -60,14 +60,25 @@ export function createWordBox(word, paa) {
       chip.className = `asai-chip type-${typeLower}`;
       chip.textContent = ASAI_NAMES[asai.vagai] || titleCase(asai.vagai);
 
-      chip.addEventListener('mouseenter', () => {
+      const showAsaiHighlight = () => {
         const hoverClass = `asai-hover-${typeLower}`;
         box.querySelectorAll(`[data-asai-idx="${asaiIdx}"]`).forEach(el => el.classList.add(hoverClass));
-      });
-      chip.addEventListener('mouseleave', () => {
+      };
+      const clearAsaiHighlight = () => {
         box.querySelectorAll('[data-asai-idx]').forEach(el => {
           el.classList.remove('asai-hover-neer', 'asai-hover-nirai');
         });
+      };
+
+      chip.addEventListener('mouseenter', showAsaiHighlight);
+      chip.addEventListener('mouseleave', clearAsaiHighlight);
+
+      // Touch: toggle highlight on tap
+      let asaiActive = false;
+      chip.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        asaiActive = !asaiActive;
+        if (asaiActive) { showAsaiHighlight(); } else { clearAsaiHighlight(); }
       });
 
       strip.appendChild(chip);

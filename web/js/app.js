@@ -124,15 +124,15 @@ function handleLineClick(lineIdx) {
 // ===== Tag Interactions =====
 
 function handleTagHover(tagKey) {
-  if (activeTag) {
-    activeTag = null;
-    document.querySelectorAll('.tag-pill.active').forEach(el => el.classList.remove('active'));
-  }
+  // Show transient highlight on hover, but don't clear a persistent (clicked) tag
+  if (activeTag) return;
   clearEvidence();
   highlightEvidence(evidenceMap, tagKey, false);
 }
 
 function handleTagLeave() {
+  // Only clear transient hover highlights, not persistent (clicked) ones
+  if (activeTag) return;
   clearEvidence();
 }
 

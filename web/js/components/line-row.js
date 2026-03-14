@@ -205,7 +205,7 @@ function createJunctionConnector(wordMap, word, toSolIdx, fromSolIdx) {
   const eerruAsaiIdx = prevWord?.asaikal ? prevWord.asaikal.length - 1 : -1;
 
   if (eerruAsaiIdx >= 0) {
-    connector.addEventListener('mouseenter', () => {
+    const showJunctionHighlight = () => {
       const prevBox = document.querySelector(`[data-sol-idx="${fromSolIdx}"]`);
       if (prevBox) {
         prevBox.querySelectorAll(`[data-asai-idx="${eerruAsaiIdx}"]`).forEach(el =>
@@ -218,11 +218,22 @@ function createJunctionConnector(wordMap, word, toSolIdx, fromSolIdx) {
           el.classList.add('junction-hover-muthal')
         );
       }
-    });
-    connector.addEventListener('mouseleave', () => {
+    };
+    const clearJunctionHighlight = () => {
       document.querySelectorAll('.junction-hover-eerru, .junction-hover-muthal').forEach(el =>
         el.classList.remove('junction-hover-eerru', 'junction-hover-muthal')
       );
+    };
+
+    connector.addEventListener('mouseenter', showJunctionHighlight);
+    connector.addEventListener('mouseleave', clearJunctionHighlight);
+
+    // Touch: toggle highlight on tap
+    let junctionActive = false;
+    connector.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      junctionActive = !junctionActive;
+      if (junctionActive) { showJunctionHighlight(); } else { clearJunctionHighlight(); }
     });
   }
 

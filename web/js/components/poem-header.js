@@ -168,9 +168,18 @@ function createTagPill(key, value, { onTagHover, onTagLeave, onTagClick }) {
     pill.appendChild(val);
   }
 
-  pill.addEventListener('mouseenter', () => onTagHover(key));
-  pill.addEventListener('mouseleave', () => onTagLeave());
-  pill.addEventListener('click', () => onTagClick(key));
+  // On touch devices, skip hover and go straight to click/toggle behavior
+  let isTouching = false;
+  pill.addEventListener('touchstart', () => { isTouching = true; }, { passive: true });
+  pill.addEventListener('touchend', (e) => {
+    e.preventDefault(); // prevent mouseenter/click from also firing
+    onTagClick(key);
+    isTouching = false;
+  });
+
+  pill.addEventListener('mouseenter', () => { if (!isTouching) onTagHover(key); });
+  pill.addEventListener('mouseleave', () => { if (!isTouching) onTagLeave(); });
+  pill.addEventListener('click', () => { if (!isTouching) onTagClick(key); });
 
   return pill;
 }

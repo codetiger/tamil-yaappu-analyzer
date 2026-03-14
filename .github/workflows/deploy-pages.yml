@@ -39,15 +39,35 @@ jobs:
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install esbuild
+        run: npm install --no-save esbuild
+
       - name: Build WASM
         run: wasm-pack build wasm --target web --release --out-dir pkg
 
-      - name: Assemble site
+      - name: Assemble & minify site
         run: |
-          mkdir -p _site/pkg
-          cp -r web/* _site/
+          mkdir -p _site/pkg _site/js _site/css
+
+          # Bundle & minify JS (all app modules → single file)
+          npx esbuild web/js/app.js --bundle --minify --format=esm \
+            --external:../pkg/* --outfile=_site/js/app.js
+
+          # Minify CSS
+          npx esbuild web/css/colors.css --minify --outfile=_site/css/colors.css
+          npx esbuild web/css/main.css --minify --outfile=_site/css/main.css
+
+          # Minify WASM glue JS
+          npx esbuild wasm/pkg/tamil_yaappu_wasm.js --minify --outfile=_site/pkg/tamil_yaappu_wasm.js
+
+          # Copy WASM binary and HTML as-is
           cp wasm/pkg/tamil_yaappu_wasm_bg.wasm _site/pkg/
-          cp wasm/pkg/tamil_yaappu_wasm.js _site/pkg/
+          cp web/index.html _site/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

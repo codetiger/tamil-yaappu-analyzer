@@ -99,3 +99,23 @@ export function clearEvidence(persistentOnly = false) {
     document.querySelectorAll('.evidence-selected').forEach(el => el.classList.remove('evidence-selected'));
   }
 }
+
+/**
+ * Clear ALL highlights across the entire page — evidence, asai, junction, and active pills.
+ * Call this before applying any new highlight to enforce "one highlight at a time."
+ */
+export function clearAllHighlights() {
+  // Evidence highlights
+  document.querySelectorAll('.evidence-highlight').forEach(el => el.classList.remove('evidence-highlight'));
+  document.querySelectorAll('.evidence-selected').forEach(el => el.classList.remove('evidence-selected'));
+  // Asai highlights
+  document.querySelectorAll('.asai-hover-neer, .asai-hover-nirai').forEach(el =>
+    el.classList.remove('asai-hover-neer', 'asai-hover-nirai'));
+  document.querySelectorAll('.asai-chip.asai-active').forEach(el => el.classList.remove('asai-active'));
+  // Junction highlights
+  document.querySelectorAll('.junction-hover-eerru, .junction-hover-muthal').forEach(el =>
+    el.classList.remove('junction-hover-eerru', 'junction-hover-muthal'));
+  document.querySelectorAll('.junction-connector.junction-active').forEach(el => el.classList.remove('junction-active'));
+  // Tag pill active state
+  document.querySelectorAll('.tag-pill.active').forEach(el => el.classList.remove('active'));
+}

@@ -3,6 +3,7 @@
  */
 import { groupWordsByLine } from '../data-mapper.js';
 import { createWordBox } from './word-box.js';
+import { clearAllHighlights } from '../evidence.js';
 
 const ADI_TYPE_LABELS = {
   kuraladi: 'குறளடி',
@@ -228,12 +229,16 @@ function createJunctionConnector(wordMap, word, toSolIdx, fromSolIdx) {
     connector.addEventListener('mouseenter', showJunctionHighlight);
     connector.addEventListener('mouseleave', clearJunctionHighlight);
 
-    // Touch: toggle highlight on tap
-    let junctionActive = false;
+    // Touch: tap to highlight, tap again to clear; clears all other highlights page-wide
     connector.addEventListener('touchend', (e) => {
       e.preventDefault();
-      junctionActive = !junctionActive;
-      if (junctionActive) { showJunctionHighlight(); } else { clearJunctionHighlight(); }
+      const wasActive = connector.classList.contains('junction-active');
+      clearAllHighlights();
+      document.dispatchEvent(new CustomEvent('highlights-cleared'));
+      if (!wasActive) {
+        connector.classList.add('junction-active');
+        showJunctionHighlight();
+      }
     });
   }
 

@@ -135,6 +135,16 @@ export function renderPoemHeader(container, analysis, { onTagHover, onTagLeave, 
   }
 }
 
+// Module-level touch guard to suppress simulated mouse/click events after any pill touch
+let touchGuardActive = false;
+let touchGuardTimer = null;
+
+function setTouchGuard() {
+  touchGuardActive = true;
+  clearTimeout(touchGuardTimer);
+  touchGuardTimer = setTimeout(() => { touchGuardActive = false; }, 400);
+}
+
 function createTagPill(key, value, { onTagHover, onTagLeave, onTagClick }) {
   const pill = document.createElement('div');
   pill.className = 'tag-pill';
@@ -169,17 +179,15 @@ function createTagPill(key, value, { onTagHover, onTagLeave, onTagClick }) {
   }
 
   // On touch devices, skip hover and go straight to click/toggle behavior
-  let isTouching = false;
-  pill.addEventListener('touchstart', () => { isTouching = true; }, { passive: true });
+  pill.addEventListener('touchstart', () => { setTouchGuard(); }, { passive: true });
   pill.addEventListener('touchend', (e) => {
     e.preventDefault(); // prevent mouseenter/click from also firing
     onTagClick(key);
-    isTouching = false;
   });
 
-  pill.addEventListener('mouseenter', () => { if (!isTouching) onTagHover(key); });
-  pill.addEventListener('mouseleave', () => { if (!isTouching) onTagLeave(); });
-  pill.addEventListener('click', () => { if (!isTouching) onTagClick(key); });
+  pill.addEventListener('mouseenter', () => { if (!touchGuardActive) onTagHover(key); });
+  pill.addEventListener('mouseleave', () => { if (!touchGuardActive) onTagLeave(); });
+  pill.addEventListener('click', () => { if (!touchGuardActive) onTagClick(key); });
 
   return pill;
 }

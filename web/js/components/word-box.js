@@ -2,6 +2,7 @@
  * word-box.js — Renders a single word box with embedded tags.
  */
 import { titleCase, SEER_NAMES, ASAI_NAMES } from '../data-mapper.js';
+import { clearAllHighlights } from '../evidence.js';
 
 // Map seer_group values to CSS class names for border color
 const SEER_GROUP_TO_CLASS = {
@@ -73,12 +74,16 @@ export function createWordBox(word, paa) {
       chip.addEventListener('mouseenter', showAsaiHighlight);
       chip.addEventListener('mouseleave', clearAsaiHighlight);
 
-      // Touch: toggle highlight on tap
-      let asaiActive = false;
+      // Touch: tap to highlight, tap again to clear; clears all other highlights page-wide
       chip.addEventListener('touchend', (e) => {
         e.preventDefault();
-        asaiActive = !asaiActive;
-        if (asaiActive) { showAsaiHighlight(); } else { clearAsaiHighlight(); }
+        const wasActive = chip.classList.contains('asai-active');
+        clearAllHighlights();
+        document.dispatchEvent(new CustomEvent('highlights-cleared'));
+        if (!wasActive) {
+          chip.classList.add('asai-active');
+          showAsaiHighlight();
+        }
       });
 
       strip.appendChild(chip);

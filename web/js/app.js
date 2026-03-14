@@ -4,7 +4,7 @@
 import { parseEngineOutput } from './data-mapper.js';
 import { renderPoemHeader } from './components/poem-header.js';
 import { renderLineRows } from './components/line-row.js';
-import { buildEvidenceMap, highlightEvidence, clearEvidence } from './evidence.js';
+import { buildEvidenceMap, highlightEvidence, clearEvidence, clearAllHighlights } from './evidence.js';
 
 // Sample verses
 const SAMPLE_VERSES = [
@@ -126,7 +126,7 @@ function handleLineClick(lineIdx) {
 function handleTagHover(tagKey) {
   // Show transient highlight on hover, but don't clear a persistent (clicked) tag
   if (activeTag) return;
-  clearEvidence();
+  clearAllHighlights();
   highlightEvidence(evidenceMap, tagKey, false);
 }
 
@@ -138,17 +138,12 @@ function handleTagLeave() {
 
 function handleTagClick(tagKey) {
   // Toggle
+  clearAllHighlights();
   if (activeTag === tagKey) {
     activeTag = null;
-    clearEvidence();
-    // Remove active class from pills
-    document.querySelectorAll('.tag-pill.active').forEach(el => el.classList.remove('active'));
   } else {
     activeTag = tagKey;
-    clearEvidence();
     highlightEvidence(evidenceMap, tagKey, true);
-    // Update pill active states
-    document.querySelectorAll('.tag-pill.active').forEach(el => el.classList.remove('active'));
     const pill = document.querySelector(`[data-tag-key="${tagKey}"]`);
     if (pill) pill.classList.add('active');
   }
@@ -163,10 +158,14 @@ document.addEventListener('keydown', (e) => {
       render();
     } else if (activeTag) {
       activeTag = null;
-      clearEvidence();
-      document.querySelectorAll('.tag-pill.active').forEach(el => el.classList.remove('active'));
+      clearAllHighlights();
     }
   }
+});
+
+// When junction/asai touch handlers clear all highlights, reset activeTag state
+document.addEventListener('highlights-cleared', () => {
+  activeTag = null;
 });
 
 // ===== Event Wiring =====

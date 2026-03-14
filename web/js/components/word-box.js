@@ -81,7 +81,7 @@ export function createWordBox(word, paa) {
     const seerEl = document.createElement('div');
     seerEl.className = 'word-box-seer';
     const seerTamil = SEER_NAMES[seerVal] || '';
-    seerEl.textContent = seerTamil ? `${seerTamil} (${titleCase(seerVal)})` : titleCase(seerVal);
+    seerEl.textContent = seerTamil || titleCase(seerVal);
     box.appendChild(seerEl);
   }
 
@@ -93,7 +93,7 @@ export function createWordBox(word, paa) {
   if (isKutri) {
     const kutriTag = document.createElement('span');
     kutriTag.className = 'word-tag tag-kutri';
-    kutriTag.textContent = 'kutri';
+    kutriTag.textContent = 'குற்று';
     kutriTag.setAttribute('title', 'குற்றியலுகரம் — இறுதி எழுத்து குறுகி ஒலிக்கும்');
     tagsDiv.appendChild(kutriTag);
   }
@@ -102,7 +102,7 @@ export function createWordBox(word, paa) {
   if (word._isEetru) {
     const eetruTag = document.createElement('span');
     eetruTag.className = 'word-tag tag-eetru';
-    eetruTag.textContent = 'eetru';
+    eetruTag.textContent = 'ஈற்று';
     eetruTag.setAttribute('title', 'ஈற்றுச் சீர் — பாவின் இறுதிச் சொல்');
     tagsDiv.appendChild(eetruTag);
   }

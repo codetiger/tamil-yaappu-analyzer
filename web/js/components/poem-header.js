@@ -7,7 +7,7 @@ const PRIMARY_PA_LABELS = {
   asiriyappa: 'ஆசிரியப்பா',
   kalippa: 'கலிப்பா',
   vanjippa: 'வஞ்சிப்பா',
-  unknown: 'Unknown',
+  unknown: 'வகைப்படுத்த இயலவில்லை',
 };
 
 const GRANULARITY_LABELS = {
@@ -35,15 +35,15 @@ const TAG_LABELS = {
   monai: 'மோனை',
   iyaipu: 'இயைபு',
   kutrilugaram: 'குற்றியலுகரம்',
-  valid_tamil: 'Valid Tamil',
-  no_empty_words: 'No Empty',
-  syllabification_ok: 'Syllables',
-  has_overflow: 'Overflow',
-  thalai_all_valid: 'Junctions',
+  valid_tamil: 'சரியான தமிழ்',
+  no_empty_words: 'வெற்றுச்சொல் இல்லை',
+  syllabification_ok: 'பிரிப்பு',
+  has_overflow: 'மிகை',
+  thalai_all_valid: 'தளை',
   eetru_type: 'ஈற்று',
-  has_kani_seer: 'Kani Seer',
-  link_harmony: 'Link Harmony',
-  vikarpam_type: 'Vikarpam',
+  has_kani_seer: 'கனிச்சீர்',
+  link_harmony: 'இணைப்பு இசைவு',
+  vikarpam_type: 'விகற்பம்',
 };
 
 const TAG_DESCRIPTIONS = {
@@ -108,7 +108,7 @@ export function renderPoemHeader(container, analysis, { onTagHover, onTagLeave, 
       infoParts.push(OSAI_LABELS[osai] || osai);
     }
     const adiCount = cls.adi_count ?? analysis.tags?.adi_count?.value ?? analysis.tags?.adi_count ?? '?';
-    infoParts.push(`${adiCount} lines`);
+    infoParts.push(`${adiCount} அடி`);
 
     const info = document.createElement('span');
     info.className = 'classification-info';

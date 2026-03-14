@@ -19,26 +19,27 @@ export function parseEngineOutput(jsonString) {
  * Group words (sorkal) by line (adi), merging compound sub-parts.
  * Compound parts sharing the same compound_source_index are grouped
  * into a single display entry with a `parts` array.
+ * Uses nested paa.adikal[].sorkal[] structure (no flat paa.sorkal).
  * @param {object} paa - PaaData object
  * @returns {Array<Array<object>>} Array of lines, each containing word/group objects
  */
 export function groupWordsByLine(paa) {
-  if (!paa?.adikal || !paa?.sorkal) return [];
+  if (!paa?.adikal) return [];
+  let globalIdx = 0;
   return paa.adikal.map(adi => {
+    const sorkal = adi.sorkal || [];
     const result = [];
     let i = 0;
-    const indices = adi.sol_varisaikal;
-    while (i < indices.length) {
-      const sol = paa.sorkal[indices[i]];
-      const word = { ...sol, _solIndex: indices[i] };
+    while (i < sorkal.length) {
+      const sol = sorkal[i];
+      const word = { ...sol, _solIndex: globalIdx + i };
       if (sol.compound_source_index !== undefined && sol.compound_source_index !== null) {
-        // Start of a compound group — collect all parts with same source
         const srcIdx = sol.compound_source_index;
         const parts = [word];
-        while (i + 1 < indices.length) {
-          const next = paa.sorkal[indices[i + 1]];
+        while (i + 1 < sorkal.length) {
+          const next = sorkal[i + 1];
           if (next.compound_source_index === srcIdx) {
-            parts.push({ ...next, _solIndex: indices[i + 1] });
+            parts.push({ ...next, _solIndex: globalIdx + i + 1 });
             i++;
           } else {
             break;
@@ -46,8 +47,8 @@ export function groupWordsByLine(paa) {
         }
         result.push({
           _isCompound: true,
-          _sourceText: sol.compound_source_text || sol.raw_text,
-          _solIndex: indices[i], // use last part index for selection
+          _sourceText: sol.compound_source_text || sol.raw || sol.raw_text || '',
+          _solIndex: globalIdx + i,
           parts,
         });
       } else {
@@ -55,6 +56,7 @@ export function groupWordsByLine(paa) {
       }
       i++;
     }
+    globalIdx += sorkal.length;
     return result;
   });
 }

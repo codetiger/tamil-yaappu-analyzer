@@ -1,12 +1,12 @@
 /**
- * app.js — Entry point: WASM loader, orchestration, event wiring.
+ * app.js — Entry point: WASM loader, orchestration, state management.
  */
 import { parseEngineOutput } from './data-mapper.js';
-import { renderVerse } from './components/verse-display.js';
-import { renderWordDetail } from './components/word-card.js';
-import { renderAnalysis, renderTagDetail } from './components/analysis-panel.js';
+import { renderPoemHeader } from './components/poem-header.js';
+import { renderLineRows } from './components/line-row.js';
+import { buildEvidenceMap, highlightEvidence, clearEvidence } from './evidence.js';
 
-// Sample verses for the dropdown
+// Sample verses
 const SAMPLE_VERSES = [
   { label: 'Kural Venba — #1', text: 'அகர முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு' },
   { label: 'Kural Venba — #47', text: 'எண்ணென்ப ஏனை எழுத்தென்ப இவ்விரண்டும்\nகண்ணென்ப வாழும் உயிர்க்கு' },
@@ -21,20 +21,25 @@ const SAMPLE_VERSES = [
   { label: 'Kali Venba — 13 Lines', text: 'பூமேவு செங்கமலப் புத்தேளும் தேறரிய\nபாமேவு தெய்வப் பழமறையும் - தேமேவு\nநாதமும் நாதாந்த முடிவும் நவைதீர்ந்த\nபோதமும் காணாத போதமாய் - ஆதிநடு\nஅந்தம் கடந்தநித்தி யானந்த போதமாய்ப்\nபந்தம் தணந்த பரஞ்சுடராய் - வந்த\nஅடியார் இதயத் தாமரை மேலமர்ந்த\nநெடியான் மருகன் நிமலன் - வடியார்\nவேலோன் மயில்வீரன் வெற்றிப் புயத்தவன்\nகாலோன் வணங்கும் கதிரவன் - மேலோர்\nபுகழும் புகழவன் பொன்னடி போற்றி\nஇகழும் வினைதீர்க்கும் ஈசன் - மகனாய்\nகந்தன் மலரடி போற்றி' },
 ];
 
+// State
 let engine = null;
 let currentPaa = null;
 let currentAnalysis = null;
-let selectedWordIndex = null;
+let evidenceMap = new Map();
+let activeTag = null;
+
+const state = {
+  selectedLine: null,
+};
 
 // DOM references
+const inputSection = document.getElementById('input-section');
 const inputTextarea = document.getElementById('input-text');
 const btnAnalyze = document.getElementById('btn-analyze');
 const sampleSelect = document.getElementById('sample-select');
 const loadingBar = document.getElementById('loading-bar');
-const verseZone = document.getElementById('verse-zone');
-const detailZone = document.getElementById('detail-zone');
-const validationZone = document.getElementById('validation-zone');
-const detailBackdrop = document.getElementById('detail-backdrop');
+const poemHeader = document.getElementById('poem-header');
+const poemBody = document.getElementById('poem-body');
 
 // ===== Initialization =====
 
@@ -72,66 +77,101 @@ async function analyze() {
 
     currentPaa = paa;
     currentAnalysis = analysis;
-    selectedWordIndex = null;
+    state.selectedLine = null;
+    activeTag = null;
 
-    renderVerse(verseZone, paa, handleWordClick, selectedWordIndex);
+    // Build evidence map
+    evidenceMap = buildEvidenceMap(paa, analysis);
 
-    // Render analysis: classification + compact tag grid
-    renderAnalysis(validationZone, analysis, handleTagClick);
-
-    // First-time click hint
-    if (!localStorage.getItem('yaappu-hint-shown')) {
-      const hint = document.createElement('div');
-      hint.className = 'click-hint';
-      hint.textContent = 'Tap a word for details';
-      hint.addEventListener('click', () => {
-        hint.remove();
-        localStorage.setItem('yaappu-hint-shown', '1');
-      });
-      verseZone.insertBefore(hint, verseZone.firstChild);
-      localStorage.setItem('yaappu-hint-shown', '1');
-    }
-
-    closeDetail();
+    render();
   } catch (err) {
     console.error('Analysis error:', err);
-    verseZone.innerHTML = `<div class="loading-bar" style="color: var(--color-error)">Analysis failed: ${err.message || err}</div>`;
-    verseZone.classList.add('visible');
+    poemBody.innerHTML = `<div class="loading-bar" style="color: var(--color-error)">Analysis failed: ${err.message || err}</div>`;
+    poemBody.classList.add('visible');
   } finally {
     btnAnalyze.disabled = false;
     btnAnalyze.textContent = 'Analyze';
   }
 }
 
-// ===== Word Selection =====
+// ===== Rendering =====
 
-function handleWordClick(word, solIndex) {
-  selectedWordIndex = solIndex;
-  renderVerse(verseZone, currentPaa, handleWordClick, selectedWordIndex);
-  renderWordDetail(detailZone, word, currentPaa);
-  detailBackdrop.classList.add('visible');
-}
+function render() {
+  // Poem header (Level 0)
+  renderPoemHeader(poemHeader, currentAnalysis, {
+    onTagHover: handleTagHover,
+    onTagLeave: handleTagLeave,
+    onTagClick: handleTagClick,
+  });
 
-// ===== Tag Selection =====
+  // Line rows with word boxes (Level 1 + 2)
+  renderLineRows(poemBody, currentPaa, state, handleLineClick);
 
-function handleTagClick(tagKey, tags) {
-  selectedWordIndex = null;
-  renderVerse(verseZone, currentPaa, handleWordClick, selectedWordIndex);
-  renderTagDetail(detailZone, tagKey, tags);
-  detailBackdrop.classList.add('visible');
-}
-
-// ===== Detail Panel Close =====
-
-function closeDetail() {
-  detailZone.innerHTML = '';
-  detailZone.classList.remove('visible');
-  detailBackdrop.classList.remove('visible');
-  selectedWordIndex = null;
-  if (currentPaa) {
-    renderVerse(verseZone, currentPaa, handleWordClick, selectedWordIndex);
+  // Re-apply active tag highlight
+  if (activeTag) {
+    highlightEvidence(evidenceMap, activeTag, true);
   }
 }
+
+// ===== Line Selection =====
+
+function handleLineClick(lineIdx) {
+  // Toggle
+  state.selectedLine = state.selectedLine === lineIdx ? null : lineIdx;
+  render();
+}
+
+// ===== Tag Interactions =====
+
+function handleTagHover(tagKey) {
+  clearEvidence();
+  highlightEvidence(evidenceMap, tagKey, false);
+  // Re-apply active tag if different
+  if (activeTag && activeTag !== tagKey) {
+    highlightEvidence(evidenceMap, activeTag, true);
+  }
+}
+
+function handleTagLeave() {
+  clearEvidence();
+  // Re-apply active tag
+  if (activeTag) {
+    highlightEvidence(evidenceMap, activeTag, true);
+  }
+}
+
+function handleTagClick(tagKey) {
+  // Toggle
+  if (activeTag === tagKey) {
+    activeTag = null;
+    clearEvidence();
+    // Remove active class from pills
+    document.querySelectorAll('.tag-pill.active').forEach(el => el.classList.remove('active'));
+  } else {
+    activeTag = tagKey;
+    clearEvidence();
+    highlightEvidence(evidenceMap, tagKey, true);
+    // Update pill active states
+    document.querySelectorAll('.tag-pill.active').forEach(el => el.classList.remove('active'));
+    const pill = document.querySelector(`[data-tag-key="${tagKey}"]`);
+    if (pill) pill.classList.add('active');
+  }
+}
+
+// ===== Keyboard Navigation =====
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (state.selectedLine !== null) {
+      state.selectedLine = null;
+      render();
+    } else if (activeTag) {
+      activeTag = null;
+      clearEvidence();
+      document.querySelectorAll('.tag-pill.active').forEach(el => el.classList.remove('active'));
+    }
+  }
+});
 
 // ===== Event Wiring =====
 
@@ -149,17 +189,6 @@ sampleSelect.addEventListener('change', () => {
   if (idx >= 0 && idx < SAMPLE_VERSES.length) {
     inputTextarea.value = SAMPLE_VERSES[idx].text;
     if (engine) analyze();
-  }
-});
-
-// Detail panel close handlers
-detailBackdrop.addEventListener('click', closeDetail);
-
-detailZone.addEventListener('detail-close', closeDetail);
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && detailZone.classList.contains('visible')) {
-    closeDetail();
   }
 });
 

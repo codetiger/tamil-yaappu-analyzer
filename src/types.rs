@@ -13,6 +13,12 @@ pub struct AdiData {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AsaiData {
+    pub vagai: String,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SolData {
     pub raw: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -24,6 +30,7 @@ pub struct SolData {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kadai_alavu: Option<String>,
     pub asai_seq: Vec<String>,
+    pub asaikal: Vec<AsaiData>,
 }
 
 impl SolData {
@@ -35,6 +42,7 @@ impl SolData {
             kadai_ezhuthu: None,
             kadai_alavu: None,
             asai_seq: vec![],
+            asaikal: vec![],
         }
     }
 }

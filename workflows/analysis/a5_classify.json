@@ -15,55 +15,62 @@
           "mappings": [
             {
               "path": "data.analysis.classification.primary_pa",
-              "logic": {"if": [
-                {"and": [
-                  {"==": [{"var": "data.analysis.tags.valid_tamil"}, true]},
-                  {"==": [{"var": "data.analysis.tags.no_empty_words"}, true]},
-                  {"==": [{"var": "data.analysis.tags.syllabification_ok"}, true]},
-                  {"==": [{"var": "data.analysis.tags.thalai_all_valid"}, true]},
-                  {"==": [{"var": "data.analysis.tags.has_kani_seer"}, false]},
-                  {"==": [{"var": "data.analysis.tags.has_overflow"}, false]},
-                  {"in": [
-                    {"var": "data.analysis.tags.eetru_type"},
-                    ["naal", "malar", "kaasu", "pirappu"]
+              "logic": {
+                "value": {"if": [
+                  {"and": [
+                    {"==": [{"var": "data.analysis.tags.valid_tamil.value"}, true]},
+                    {"==": [{"var": "data.analysis.tags.no_empty_words.value"}, true]},
+                    {"==": [{"var": "data.analysis.tags.syllabification_ok.value"}, true]},
+                    {"==": [{"var": "data.analysis.tags.thalai_all_valid.value"}, true]},
+                    {"==": [{"var": "data.analysis.tags.has_kani_seer.value"}, false]},
+                    {"==": [{"var": "data.analysis.tags.has_overflow.value"}, false]},
+                    {"in": [
+                      {"var": "data.analysis.tags.eetru_type.value"},
+                      ["naal", "malar", "kaasu", "pirappu"]
+                    ]},
+                    {">=": [{"var": "data.analysis.tags.adi_count.value"}, 2]},
+                    {"all": [
+                      {"slice": [{"var": "data.analysis.tags.sol_per_adi.value"}, -1]},
+                      {"==": [{"var": ""}, 3]}
+                    ]}
                   ]},
-                  {">=": [{"var": "data.analysis.tags.adi_count"}, 2]},
-                  {"all": [
-                    {"slice": [{"var": "data.analysis.tags.sol_per_adi"}, -1]},
-                    {"==": [{"var": ""}, 3]}
-                  ]}
-                ]},
-                "venba",
-                {"and": [
-                  {"==": [{"var": "data.analysis.tags.valid_tamil"}, true]},
-                  {"some": [
-                    {"var": "data.analysis.tags.thalai_types"},
-                    {"in": [{"var": ""}, ["ner_onru_aasiriyathalai", "nirai_onru_aasiriyathalai"]]}
+                  "venba",
+                  {"and": [
+                    {"==": [{"var": "data.analysis.tags.valid_tamil.value"}, true]},
+                    {"some": [
+                      {"var": "data.analysis.tags.thalai_types.value"},
+                      {"in": [{"var": ""}, ["ner_onru_aasiriyathalai", "nirai_onru_aasiriyathalai"]]}
+                    ]},
+                    {"none": [
+                      {"var": "data.analysis.tags.thalai_types.value"},
+                      {"in": [{"var": ""}, ["kalithalai", "oonru_vanjithalai", "oonraatha_vanjithalai"]]}
+                    ]}
                   ]},
-                  {"none": [
-                    {"var": "data.analysis.tags.thalai_types"},
-                    {"in": [{"var": ""}, ["kalithalai", "oonru_vanjithalai", "oonraatha_vanjithalai"]]}
-                  ]}
+                  "asiriyappa",
+                  {"and": [
+                    {"==": [{"var": "data.analysis.tags.valid_tamil.value"}, true]},
+                    {"some": [
+                      {"var": "data.analysis.tags.thalai_types.value"},
+                      {"in": [{"var": ""}, ["oonru_vanjithalai", "oonraatha_vanjithalai"]]}
+                    ]}
+                  ]},
+                  "vanjippa",
+                  {"and": [
+                    {"==": [{"var": "data.analysis.tags.valid_tamil.value"}, true]},
+                    {"some": [
+                      {"var": "data.analysis.tags.thalai_types.value"},
+                      {"==": [{"var": ""}, "kalithalai"]}
+                    ]}
+                  ]},
+                  "kalippa",
+                  "unknown"
                 ]},
-                "asiriyappa",
-                {"and": [
-                  {"==": [{"var": "data.analysis.tags.valid_tamil"}, true]},
-                  {"some": [
-                    {"var": "data.analysis.tags.thalai_types"},
-                    {"in": [{"var": ""}, ["oonru_vanjithalai", "oonraatha_vanjithalai"]]}
-                  ]}
-                ]},
-                "vanjippa",
-                {"and": [
-                  {"==": [{"var": "data.analysis.tags.valid_tamil"}, true]},
-                  {"some": [
-                    {"var": "data.analysis.tags.thalai_types"},
-                    {"==": [{"var": ""}, "kalithalai"]}
-                  ]}
-                ]},
-                "kalippa",
-                "unknown"
-              ]}
+                "refs": [
+                  "poem.valid_tamil", "poem.no_empty_words", "poem.syllabification_ok",
+                  "poem.thalai_all_valid", "poem.has_kani_seer", "poem.has_overflow",
+                  "poem.eetru_type", "poem.adi_count", "poem.sol_per_adi", "poem.thalai_types"
+                ]
+              }
             }
           ]
         }
@@ -78,11 +85,14 @@
           "mappings": [
             {
               "path": "data.analysis.classification.osai_type",
-              "logic": {"switch": [
-                {"var": "data.analysis.classification.primary_pa"},
-                [["venba", "seppal"], ["asiriyappa", "ahaval"], ["kalippa", "thullal"], ["vanjippa", "thoongal"]],
-                null
-              ]}
+              "logic": {
+                "value": {"switch": [
+                  {"var": "data.analysis.classification.primary_pa.value"},
+                  [["venba", "seppal"], ["asiriyappa", "ahaval"], ["kalippa", "thullal"], ["vanjippa", "thoongal"]],
+                  null
+                ]},
+                "refs": ["poem.primary_pa"]
+              }
             }
           ]
         }
@@ -97,84 +107,87 @@
           "mappings": [
             {
               "path": "data.analysis.classification.granularity_type",
-              "logic": {"switch": [
-                {"var": "data.analysis.classification.primary_pa"},
-                [
-                  ["venba", {"if": [
-                    {"==": [{"var": "data.analysis.tags.adi_count"}, 2]},
-                    "kural_venba",
-                    {"==": [{"var": "data.analysis.tags.adi_count"}, 3]},
-                    "sindhiyal_venba",
-                    {"and": [
-                      {"==": [{"var": "data.analysis.tags.adi_count"}, 4]},
-                      {"==": [{"var": "data.analysis.tags.has_thanichol"}, true]}
-                    ]},
-                    "nerisai_venba",
-                    {"==": [{"var": "data.analysis.tags.adi_count"}, 4]},
-                    "innisai_venba",
-                    {">=": [{"var": "data.analysis.tags.adi_count"}, 13]},
-                    "pahrodai_venba",
-                    {">=": [{"var": "data.analysis.tags.adi_count"}, 5]},
-                    "venba",
-                    "venba"
-                  ]}],
-                  ["asiriyappa", {"if": [
-                    {"some": [
-                      {"var": "data.paa.adikal"},
+              "logic": {
+                "value": {"switch": [
+                  {"var": "data.analysis.classification.primary_pa.value"},
+                  [
+                    ["venba", {"if": [
+                      {"==": [{"var": "data.analysis.tags.adi_count.value"}, 2]},
+                      "kural_venba",
+                      {"==": [{"var": "data.analysis.tags.adi_count.value"}, 3]},
+                      "sindhiyal_venba",
                       {"and": [
-                        {"==": [{"var": "line_position"}, "penultimate"]},
-                        {"==": [{"var": "adi_type"}, "chinthadi"]}
-                      ]}
-                    ]},
-                    "nerisai_asiriyappa",
-                    {"and": [
+                        {"==": [{"var": "data.analysis.tags.adi_count.value"}, 4]},
+                        {"==": [{"var": "data.analysis.tags.has_thanichol.value"}, true]}
+                      ]},
+                      "nerisai_venba",
+                      {"==": [{"var": "data.analysis.tags.adi_count.value"}, 4]},
+                      "innisai_venba",
+                      {">=": [{"var": "data.analysis.tags.adi_count.value"}, 13]},
+                      "pahrodai_venba",
+                      {">=": [{"var": "data.analysis.tags.adi_count.value"}, 5]},
+                      "venba",
+                      "venba"
+                    ]}],
+                    ["asiriyappa", {"if": [
                       {"some": [
                         {"var": "data.paa.adikal"},
                         {"and": [
-                          {"==": [{"var": "line_position"}, "first"]},
-                          {"==": [{"var": "adi_type"}, "alavadi"]}
+                          {"==": [{"var": "line_position"}, "penultimate"]},
+                          {"==": [{"var": "adi_type.value"}, "chinthadi"]}
                         ]}
                       ]},
-                      {"some": [
-                        {"var": "data.paa.adikal"},
-                        {"and": [
-                          {"==": [{"var": "line_position"}, "last"]},
-                          {"==": [{"var": "adi_type"}, "alavadi"]}
+                      "nerisai_asiriyappa",
+                      {"and": [
+                        {"some": [
+                          {"var": "data.paa.adikal"},
+                          {"and": [
+                            {"==": [{"var": "line_position"}, "first"]},
+                            {"==": [{"var": "adi_type.value"}, "alavadi"]}
+                          ]}
+                        ]},
+                        {"some": [
+                          {"var": "data.paa.adikal"},
+                          {"and": [
+                            {"==": [{"var": "line_position"}, "last"]},
+                            {"==": [{"var": "adi_type.value"}, "alavadi"]}
+                          ]}
+                        ]},
+                        {"all": [
+                          {"var": "data.paa.adikal"},
+                          {"or": [
+                            {"in": [{"var": "line_position"}, ["first", "last"]]},
+                            {"in": [{"var": "adi_type.value"}, ["kuraladi", "chinthadi"]]}
+                          ]}
                         ]}
                       ]},
+                      "inaikural_asiriyappa",
                       {"all": [
                         {"var": "data.paa.adikal"},
-                        {"or": [
-                          {"in": [{"var": "line_position"}, ["first", "last"]]},
-                          {"in": [{"var": "adi_type"}, ["kuraladi", "chinthadi"]]}
-                        ]}
-                      ]}
-                    ]},
-                    "inaikural_asiriyappa",
-                    {"all": [
-                      {"var": "data.paa.adikal"},
-                      {"==": [{"var": "adi_type"}, "alavadi"]}
-                    ]},
-                    "nilaimandila_asiriyappa",
-                    "asiriyappa"
-                  ]}],
-                  ["vanjippa", {"if": [
-                    {"all": [
-                      {"var": "data.paa.adikal"},
-                      {"==": [{"var": "adi_type"}, "kuraladi"]}
-                    ]},
-                    "kuraladi_vanjippa",
-                    {"all": [
-                      {"var": "data.paa.adikal"},
-                      {"==": [{"var": "adi_type"}, "chinthadi"]}
-                    ]},
-                    "chinthadi_vanjippa",
-                    "vanjippa"
-                  ]}],
-                  ["kalippa", "kalippa"]
-                ],
-                "unknown"
-              ]}
+                        {"==": [{"var": "adi_type.value"}, "alavadi"]}
+                      ]},
+                      "nilaimandila_asiriyappa",
+                      "asiriyappa"
+                    ]}],
+                    ["vanjippa", {"if": [
+                      {"all": [
+                        {"var": "data.paa.adikal"},
+                        {"==": [{"var": "adi_type.value"}, "kuraladi"]}
+                      ]},
+                      "kuraladi_vanjippa",
+                      {"all": [
+                        {"var": "data.paa.adikal"},
+                        {"==": [{"var": "adi_type.value"}, "chinthadi"]}
+                      ]},
+                      "chinthadi_vanjippa",
+                      "vanjippa"
+                    ]}],
+                    ["kalippa", "kalippa"]
+                  ],
+                  "unknown"
+                ]},
+                "refs": ["poem.primary_pa", "poem.adi_count", "poem.has_thanichol"]
+              }
             }
           ]
         }
@@ -189,21 +202,24 @@
           "mappings": [
             {
               "path": "data.analysis.classification.is_valid",
-              "logic": {"if": [
-                {"==": [{"var": "data.analysis.classification.primary_pa"}, "venba"]},
-                {"and": [
-                  {"==": [{"var": "data.analysis.tags.thalai_all_valid"}, true]},
-                  {"in": [
-                    {"var": "data.analysis.tags.eetru_type"},
-                    ["naal", "malar", "kaasu", "pirappu"]
+              "logic": {
+                "value": {"if": [
+                  {"==": [{"var": "data.analysis.classification.primary_pa.value"}, "venba"]},
+                  {"and": [
+                    {"==": [{"var": "data.analysis.tags.thalai_all_valid.value"}, true]},
+                    {"in": [
+                      {"var": "data.analysis.tags.eetru_type.value"},
+                      ["naal", "malar", "kaasu", "pirappu"]
+                    ]},
+                    {"all": [
+                      {"slice": [{"var": "data.analysis.tags.sol_per_adi.value"}, -1]},
+                      {"==": [{"var": ""}, 3]}
+                    ]}
                   ]},
-                  {"all": [
-                    {"slice": [{"var": "data.analysis.tags.sol_per_adi"}, -1]},
-                    {"==": [{"var": ""}, 3]}
-                  ]}
+                  {"!==": [{"var": "data.analysis.classification.primary_pa.value"}, "unknown"]}
                 ]},
-                {"!==": [{"var": "data.analysis.classification.primary_pa"}, "unknown"]}
-              ]}
+                "refs": ["poem.primary_pa", "poem.thalai_all_valid", "poem.eetru_type", "poem.sol_per_adi"]
+              }
             }
           ]
         }

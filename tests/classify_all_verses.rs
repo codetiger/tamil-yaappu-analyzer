@@ -19,9 +19,11 @@ async fn assert_all_classify_as(
         match engine.process_message(&mut message).await {
             Ok(_) => {
                 let c = &message.data()["analysis"]["classification"];
-                let primary = c["primary_pa"].as_str().unwrap_or("MISSING");
-                let granularity = c["granularity_type"].as_str().unwrap_or("MISSING");
-                let is_valid = c["is_valid"].as_bool().unwrap_or(false);
+                let primary = c["primary_pa"]["value"].as_str().unwrap_or("MISSING");
+                let granularity = c["granularity_type"]["value"]
+                    .as_str()
+                    .unwrap_or("MISSING");
+                let is_valid = c["is_valid"]["value"].as_bool().unwrap_or(false);
 
                 if primary != expected_primary
                     || granularity != expected_granularity

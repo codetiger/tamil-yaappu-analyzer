@@ -111,6 +111,14 @@ fn process_word_from_text(raw_word: &str, analysis_text: &str) -> SolData {
         .map(|a| a.vagai.as_str().to_string())
         .collect();
 
+    let asaikal_data: Vec<AsaiData> = asaikal
+        .iter()
+        .map(|a| AsaiData {
+            vagai: a.vagai.as_str().to_string(),
+            text: a.text.clone(),
+        })
+        .collect();
+
     SolData {
         raw: raw_word.to_string(),
         muthal_ezhuthu,
@@ -118,6 +126,7 @@ fn process_word_from_text(raw_word: &str, analysis_text: &str) -> SolData {
         kadai_ezhuthu,
         kadai_alavu,
         asai_seq,
+        asaikal: asaikal_data,
     }
 }
 

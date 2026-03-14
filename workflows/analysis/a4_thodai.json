@@ -8,7 +8,7 @@
   "tasks": [
     {
       "id": "a4_rhyme_data",
-      "name": "A4: Compute rhyme_id_list, kadai_list, monai_list",
+      "name": "A4: Compute rhyme_id_list, kadai_list, monai_list with refs",
       "function": {
         "name": "map",
         "input": {
@@ -19,6 +19,22 @@
                 "map": [
                   {"var": "data.paa.adikal"},
                   {"var": "sorkal.0.irandaam_ezhuthu"}
+                ]
+              }
+            },
+            {
+              "path": "temp_data.rhyme_refs",
+              "logic": {
+                "reduce": [
+                  {"var": "data.paa.adikal"},
+                  {
+                    "refs": {"merge": [
+                      {"var": "accumulator.refs"},
+                      [{"cat": ["word.", {"var": "accumulator.idx"}, ".0.irandaam_ezhuthu"]}]
+                    ]},
+                    "idx": {"+": [{"var": "accumulator.idx"}, 1]}
+                  },
+                  {"refs": [], "idx": 0}
                 ]
               }
             },
@@ -36,11 +52,43 @@
               }
             },
             {
+              "path": "temp_data.kadai_refs",
+              "logic": {
+                "reduce": [
+                  {"var": "data.paa.adikal"},
+                  {
+                    "refs": {"merge": [
+                      {"var": "accumulator.refs"},
+                      [{"cat": ["word.", {"var": "accumulator.idx"}, ".", {"-": [{"length": {"var": "current.sorkal"}}, 1]}, ".kadai_ezhuthu"]}]
+                    ]},
+                    "idx": {"+": [{"var": "accumulator.idx"}, 1]}
+                  },
+                  {"refs": [], "idx": 0}
+                ]
+              }
+            },
+            {
               "path": "temp_data.monai_list",
               "logic": {
                 "map": [
                   {"var": "data.paa.adikal"},
                   {"var": "sorkal.0.muthal_ezhuthu"}
+                ]
+              }
+            },
+            {
+              "path": "temp_data.monai_refs",
+              "logic": {
+                "reduce": [
+                  {"var": "data.paa.adikal"},
+                  {
+                    "refs": {"merge": [
+                      {"var": "accumulator.refs"},
+                      [{"cat": ["word.", {"var": "accumulator.idx"}, ".0.muthal_ezhuthu"]}]
+                    ]},
+                    "idx": {"+": [{"var": "accumulator.idx"}, 1]}
+                  },
+                  {"refs": [], "idx": 0}
                 ]
               }
             }
@@ -110,27 +158,24 @@
           "mappings": [
             {
               "path": "data.analysis.tags.etukai",
-              "logic": {"==": [{"length": {"var": "temp_data.unique_rhymes"}}, 1]}
-            },
-            {
-              "path": "data.analysis.tags.etukai_detail",
-              "logic": {"var": "temp_data.rhyme_id_list"}
+              "logic": {
+                "value": {"==": [{"length": {"var": "temp_data.unique_rhymes"}}, 1]},
+                "refs": {"var": "temp_data.rhyme_refs.refs"}
+              }
             },
             {
               "path": "data.analysis.tags.monai",
-              "logic": {"==": [{"length": {"var": "temp_data.unique_monai"}}, 1]}
-            },
-            {
-              "path": "data.analysis.tags.monai_detail",
-              "logic": {"var": "temp_data.monai_list"}
+              "logic": {
+                "value": {"==": [{"length": {"var": "temp_data.unique_monai"}}, 1]},
+                "refs": {"var": "temp_data.monai_refs.refs"}
+              }
             },
             {
               "path": "data.analysis.tags.is_iyaipu",
-              "logic": {"==": [{"length": {"var": "temp_data.unique_kadai"}}, 1]}
-            },
-            {
-              "path": "data.analysis.tags.iyaipu_detail",
-              "logic": {"var": "temp_data.kadai_list"}
+              "logic": {
+                "value": {"==": [{"length": {"var": "temp_data.unique_kadai"}}, 1]},
+                "refs": {"var": "temp_data.kadai_refs.refs"}
+              }
             },
             {
               "path": "data.analysis.tags.vikarpam_count",

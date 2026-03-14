@@ -19,11 +19,15 @@ async fn test_all_kurals_classify_as_kural_venba() {
         match engine.process_message(&mut message).await {
             Ok(_) => {
                 let classification = &message.data()["analysis"]["classification"];
-                let primary_pa = classification["primary_pa"].as_str().unwrap_or("MISSING");
-                let granularity = classification["granularity_type"]
+                let primary_pa = classification["primary_pa"]["value"]
                     .as_str()
                     .unwrap_or("MISSING");
-                let is_valid = classification["is_valid"].as_bool().unwrap_or(false);
+                let granularity = classification["granularity_type"]["value"]
+                    .as_str()
+                    .unwrap_or("MISSING");
+                let is_valid = classification["is_valid"]["value"]
+                    .as_bool()
+                    .unwrap_or(false);
 
                 if primary_pa != "venba" || granularity != "kural_venba" || !is_valid {
                     let data = message.data();
@@ -65,11 +69,11 @@ async fn test_all_kurals_classify_as_kural_venba() {
                                         sol["raw"].as_str().unwrap_or(""),
                                         asai_seq,
                                         sol["asai_count"].as_u64().unwrap_or(0),
-                                        sol["vaaippaadu"].as_str().unwrap_or("null"),
-                                        sol["seer_group"].as_str().unwrap_or("null"),
-                                        sol["is_kutriyalukaram"].as_bool().unwrap_or(false),
-                                        sol["thalai_from_prev"].as_str().unwrap_or("null"),
-                                        sol["is_ventalai"].as_bool().map(|b| b.to_string()).unwrap_or("null".into()),
+                                        sol["vaaippaadu"]["value"].as_str().unwrap_or("null"),
+                                        sol["seer_group"]["value"].as_str().unwrap_or("null"),
+                                        sol["is_kutriyalukaram"]["value"].as_bool().unwrap_or(false),
+                                        sol["thalai_from_prev"]["value"].as_str().unwrap_or("null"),
+                                        sol["is_ventalai"]["value"].as_bool().map(|b| b.to_string()).unwrap_or("null".into()),
                                     ));
                                 }
                             }
@@ -80,12 +84,12 @@ async fn test_all_kurals_classify_as_kural_venba() {
                     let tags = &data["analysis"]["tags"];
                     detail.push_str(&format!(
                         "\n  Tags: eetru={} overflow={} kani_seer={} thalai_valid={} sol_per_adi={} valid_tamil={}",
-                        tags["eetru_type"].as_str().unwrap_or("null"),
-                        tags["has_overflow"].as_bool().unwrap_or(false),
-                        tags["has_kani_seer"].as_bool().unwrap_or(false),
-                        tags["thalai_all_valid"].as_bool().unwrap_or(false),
-                        tags["sol_per_adi"],
-                        tags["valid_tamil"].as_bool().unwrap_or(false),
+                        tags["eetru_type"]["value"].as_str().unwrap_or("null"),
+                        tags["has_overflow"]["value"].as_bool().unwrap_or(false),
+                        tags["has_kani_seer"]["value"].as_bool().unwrap_or(false),
+                        tags["thalai_all_valid"]["value"].as_bool().unwrap_or(false),
+                        tags["sol_per_adi"]["value"],
+                        tags["valid_tamil"]["value"].as_bool().unwrap_or(false),
                     ));
 
                     failures.push(detail);

@@ -1,10 +1,16 @@
 # Tamil Yaappu Analyzer
 
-A prosodic analysis engine for Tamil verse. Given any Tamil text, it produces a rich structural breakdown — graphemes, syllables, metrical units (asai), feet (seer), inter-word junctions (thalai), and ornamentation patterns (etukai, monai, iyaipu).
+A prosodic analysis and classification engine for Tamil verse. Given any Tamil text, it produces a rich structural breakdown — graphemes, syllables, metrical units (asai), feet (seer), inter-word junctions (thalai), ornamentation patterns (etukai, monai, iyaipu) — and classifies the verse into its prosody form.
 
-The engine separates **linguistic analysis** from **rule evaluation**. The preprocessor performs meter-agnostic Tamil prosodic analysis, producing a structured `PaaData` output. Meter-specific validation is defined entirely in JSON workflow files using [JSONLogic](https://github.com/GoPlasmatic/datalogic-rs) rules — supporting any Tamil prosody form (Venba, Aasiriyappa, Kalippa, Vanchippa, etc.) without code changes.
+The engine separates **linguistic analysis** from **classification logic**. The Rust preprocessor performs meter-agnostic Tamil prosodic analysis, producing structured `PaaData`. Classification and tagging are defined entirely in JSON workflow files using [JSONLogic](https://github.com/GoPlasmatic/datalogic-rs) rules, processed by the [dataflow-rs](https://github.com/GoPlasmatic/dataflow-rs) engine.
 
-Ships with **Venba/Kural** rules as a reference implementation, validated against all 1330 Thirukurals.
+Classifies all four major Tamil verse forms:
+- **Venba** — kural, sindhiyal, nerisai, innisai, pahrodai
+- **Asiriyappa** — nerisai, nilaimandila
+- **Kalippa**
+- **Vanjippa** — kuraladi, chinthadi
+
+Validated against **1,574+ verses** from classical Tamil literature including all 1,330 Thirukurals.
 
 ## What It Produces
 
@@ -33,46 +39,23 @@ For a given Tamil verse, the preprocessor generates `PaaData` — a complete pro
 
 Each word goes through: **raw text → graphemes (ezhuthukkal) → syllables → asai (mora) → seer (foot)**.
 
-### Full PaaData Structure
+### Full Output Structure
 
-For a complete verse, PaaData contains:
+For a complete verse, the engine produces:
 
-**Per-word analysis (`sorkal`)** — graphemes, syllables, asai, seer classification, sandhi resolution, compound decomposition markers
+**Prosodic data (`data.paa`)** — per-word and per-line breakdowns including graphemes, syllables, asai, seer classification, sandhi resolution, compound decomposition, junction (thalai) data with type/validity, and ornamentation (ani) with detail strings.
 
-**Per-line aggregation (`adikal`)** — seer sequence, syllable/matrai totals, word indices
+**Classification (`data.analysis.classification`)** — the determined verse form:
 ```json
 {
-  "text": "அகர முதல எழுத்தெல்லாம் ஆதி",
-  "seer_vagaikal": ["pulima", "pulima", "pulimangai", "thema"],
-  "logical_sol_count": 4,
-  "matrai_total": 18
+  "primary_pa": "venba",
+  "granularity_type": "kural_venba",
+  "osai_type": "venba_osai",
+  "is_valid": true
 }
 ```
 
-**Inter-word junctions (`thalaikal`)** — metrical relationship between each adjacent word pair
-```json
-{
-  "from_sol_index": 0,
-  "to_sol_index": 1,
-  "from_seer_category": "iyarseer",
-  "to_seer_category": "iyarseer",
-  "eerru_asai": "neer",
-  "muthal_asai": "nirai",
-  "is_cross_adi": false,
-  "is_intra_compound": false
-}
-```
-
-**Ornamentation (`ani`)** — rhyme and alliteration patterns detected across the verse
-```json
-{
-  "etukai_present": false,
-  "monai_present": false,
-  "iyaipu_present": false
-}
-```
-
-**Final word metrics (`eetru_sol`)** — asai count, ending pattern, vowel length, seer category
+**Analysis tags (`data.analysis.tags`)** — boolean/string tags from all analysis layers covering seer patterns, thalai validity, line structure, and rhyme patterns.
 
 ## Architecture
 
@@ -87,32 +70,33 @@ The system is built on the [dataflow-rs](https://github.com/GoPlasmatic/dataflow
           |                                       |
           |  NFC Normalize                        |
           |    → Script Validate                  |
-          |      → Sandhi Resolve                 |
-          |        → Grapheme Extract             |
-          |          → Syllabify                  |
-          |            → Asai Classify (mora)     |
-          |              → Seer Classify (foot)   |
-          |                → Ani Compute          |
-          |                  → Compound Decompose |
-          |                    → Thalai Data      |
+          |      → Danda Strip                    |
+          |        → Sandhi Resolve               |
+          |          → Grapheme Extract            |
+          |            → Syllabify                 |
+          |              → Asai Classify (mora)    |
+          |                → Seer Classify (foot)  |
+          |                  → Ani Compute         |
+          |                    → Compound Decompose|
+          |                      → Thalai Data     |
+          |                        → Eetru Classify|
           └───────────────────┬───────────────────┘
                               |
                            PaaData
                      (structured JSON)
                               |
           ┌───────────────────┴───────────────────┐
-          |      VALIDATION RULES (JSON)          |
-          |      Meter-specific, swappable        |
+          |      ANALYSIS WORKFLOWS (JSON)        |
+          |      5 layers, declarative rules      |
           |                                       |
-          |  Rules access PaaData fields via      |
-          |  JSONLogic expressions like:          |
-          |    data.paa.sorkal[*].seer_category   |
-          |    data.paa.thalaikal[*].eerru_asai   |
-          |    data.paa.ani.etukai_present        |
+          |  A1 Seer     — foot patterns & tags   |
+          |  A2 Thalai   — junction validity      |
+          |  A3 Adi      — line structure         |
+          |  A4 Thodai   — rhyme & ornamentation  |
+          |  A5 Classify — verse form & sub-type  |
           └───────────────────┬───────────────────┘
                               |
-                        Diagnostics
-                    (errors / warnings / info)
+                     Classification + Tags
 ```
 
 ### Preprocessor Pipeline
@@ -123,6 +107,7 @@ The preprocessor is the core of the engine. It takes raw Tamil text and produces
 |-------|-------------|
 | **NFC Normalize** | Canonical Unicode normalization for consistent character handling |
 | **Script Validate** | Identifies non-Tamil characters |
+| **Danda Strip** | Removes danda punctuation marks |
 | **Sandhi Resolve** | Collapses pluti (extended) vowels; detects compound word boundaries |
 | **Grapheme Extract** | Classifies each grapheme as uyir (vowel), mei (consonant), uyirmei (combined), or aytham |
 | **Syllabify** | Groups graphemes into syllables with matrai (weight) computation |
@@ -131,35 +116,55 @@ The preprocessor is the core of the engine. It takes raw Tamil text and produces
 | **Ani Compute** | Detects etukai (rhyme), monai (alliteration), iyaipu (end-rhyme) from original word positions |
 | **Compound Decompose** | Splits overflow words (4+ asais) into valid prosodic sub-units |
 | **Thalai Data** | Computes junction relationships between adjacent seer, with compound-awareness |
+| **Eetru Classify** | Classifies the final word's ending pattern |
 
-### Validation Rules
+### Analysis Workflows
 
-Rules are defined in JSON workflow files and evaluated by the [dataflow-rs](https://github.com/GoPlasmatic/dataflow-rs) engine using [datalogic-rs](https://github.com/GoPlasmatic/datalogic-rs) (JSONLogic). Each rule accesses `PaaData` fields and emits diagnostics at three severity levels:
+Classification and tagging are defined in JSON workflow files using JSONLogic, organized into 5 layers matching classical Tamil prosody theory:
 
-- **`E_`** (Error) — structural violations that break the meter
-- **`W_`** (Warning) — prosodic deviations worth noting
-- **`I_`** (Info) — optional ornamentation observations
+| Layer | File | What it does |
+|-------|------|-------------|
+| **A1 Seer** | `a1_seer.json` | Enriches words with asai count, vaaippaadu, seer group, kutriyalukaram detection; computes eetru pattern and summary tags |
+| **A2 Thalai** | `a2_thalai.json` | Computes thalai type and vendalai validity between consecutive words; summary tags for link harmony |
+| **A3 Adi** | `a3_adi.json` | Enriches lines with word count, adi type, line position, thanichol detection; summary tags for line structure |
+| **A4 Thodai** | `a4_thodai.json` | Computes rhyme identifiers, etukai, monai, iyaipu, vikarpam patterns |
+| **A5 Classify** | `a5_classify.json` | Final classification: primary pa, osai type, granularity type, validity |
 
-The included Venba/Kural ruleset validates across four layers:
+## Web UI
 
-| Layer | What it checks |
-|-------|----------------|
-| **L1 Structural** | Word count, line count, line split, Tamil script, empty words |
-| **L2 Seer** | Final word pattern, seer overflow, kutrilugara ending, sandhi |
-| **L3 Vendalai** | Junction rules between adjacent words (compound-aware filtering) |
-| **L4 Ornamentation** | Etukai, monai, iyaipu detection |
+The engine compiles to WebAssembly for browser use. The WASM module exposes the full analysis pipeline, and a static frontend renders the results with line-based layout and evidence highlighting.
+
+### Building the Web UI
+
+```bash
+cd wasm && wasm-pack build --target web --out-dir web/pkg  # Build WASM package
+# Then serve the web/ directory with any static file server
+```
 
 ## Extending to Other Prosody Forms
 
 The preprocessor produces the same rich `PaaData` for any Tamil text. To add support for a new meter:
 
-1. **Create a new workflow JSON file** under `workflows/` (e.g., `workflows/aasiriyappa/l1_structural.json`)
+1. **Create new workflow JSON files** under `workflows/analysis/`
 2. **Write JSONLogic rules** that reference `PaaData` fields — word counts, seer patterns, junction types, ornamentation
-3. **Register the workflow** in the engine with a priority level
+3. **Extend `a5_classify.json`** with classification logic for the new form
 
-No Rust code changes required. The existing Venba/Kural rules under `workflows/venba/` serve as a template.
+No Rust code changes required. The existing analysis workflows serve as a template.
 
-For example, Aasiriyappa rules would check for different line counts, different permitted seer combinations, and Aasiriya-specific junction (thalai) patterns — all expressible as JSONLogic over the same `PaaData` structure.
+## Test Corpus
+
+| File | Count | Expected Classification | Source |
+|------|-------|------------------------|--------|
+| `kural.json` | 1,330 | `kural_venba` | Thirukural |
+| `nerisai_venba.json` | 50 | `nerisai_venba` | Naladiyar, Nalavenba |
+| `innisai_venba.json` | 50 | `innisai_venba` | Naladiyar, Nalavenba |
+| `sindhiyal_venba.json` | 2 | `sindhiyal_venba` | Yappurungalakkarikkai |
+| `nerisai_asiriyappa.json` | 50 | `nerisai_asiriyappa` | Kurunthokai |
+| `nilaimandila_asiriyappa.json` | 12 | `nilaimandila_asiriyappa` | Kurunthokai |
+| `kalippa.json` | 50 | `kalippa` | Kurunthokai |
+| `vanjippa.json` | 30 | `vanjippa` | Naladiyar, Nalavenba |
+
+Source texts obtained from [Project Madurai](https://www.projectmadurai.org/).
 
 ## Tamil Yaappu Concepts
 
@@ -180,9 +185,12 @@ For example, Aasiriyappa rules would check for different line counts, different 
 Requires Rust toolchain and the [`dataflow-rs`](https://github.com/GoPlasmatic/dataflow-rs) crate.
 
 ```bash
-cargo build           # Build
-cargo run             # Run with sample verse
-cargo test            # Run all tests
+cargo build                            # Build
+cargo run                              # Run with Kural #1
+cargo run 42                           # Run with Kural #42
+cargo test                             # Run all tests
+cargo test --test classify_all_kurals  # Full 1330-kural validation
+cargo test --test classify_all_verses  # All verse type classification tests
 ```
 
 ## References

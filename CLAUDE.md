@@ -9,16 +9,24 @@ Tamil prosody **analyzer and classifier** for verse compositions. Analyzes Tamil
 ## Build & Test Commands
 
 ```bash
-cargo build                        # Build
-cargo test                         # Run all tests (56 unit + 52 integration)
-cargo test --lib                   # Unit tests only
-cargo test --test integration_tests # Integration tests only
-cargo test test_name               # Run a single test by name
-cargo run                          # Run with sample Kural #1
-RUST_LOG=debug cargo run           # Run with debug logging
+cargo build                            # Build
+cargo test                             # Run all tests (58 unit + 28 integration)
+cargo test --lib                       # Unit tests only
+cargo test --test integration_tests    # Integration tests only
+cargo test --test classify_all_kurals  # Full 1330-kural validation (~15s)
+cargo test --test classify_all_verses  # All verse type classification tests
+cargo test test_name                   # Run a single test by name
+cargo run                              # Run with Kural #1
+cargo run 42                            # Run with Kural #42
+RUST_LOG=debug cargo run               # Run with debug logging
 ```
 
-**Note:** Depends on a local `dataflow-rs` crate at `../Plasmatic/dataflow-rs`.
+### WASM Build (for web UI)
+
+```bash
+cd wasm && wasm-pack build --target web --out-dir web/pkg  # Build WASM package
+# Then serve web/ directory with any static file server
+```
 
 ## Architecture
 
@@ -61,6 +69,14 @@ NFC normalize → script validate → danda strip → **sandhi resolve** → gra
 ### Data Model (`src/types.rs`)
 
 `PaaData` is the central enriched structure containing: raw input, word/line data, seer classifications, junction (thalai) data with type/validity, ornamentation (ani) data with detail strings, and eetru classification.
+
+### WASM / Web UI (`wasm/`, `web/`)
+
+The `wasm/` crate wraps the analysis engine for browser use via `wasm-bindgen`. `TamilProsodyEngine` exposes a `process(input)` method returning the full dataflow Message as JSON. The `web/` directory contains the static frontend (HTML/CSS/JS) that calls the WASM module. Key JS files: `app.js` (main app), `data-mapper.js` (maps engine output to UI), `evidence.js` (highlighting), `tamil-terms.js` (Tamil terminology labels).
+
+### Build Script (`build.rs`)
+
+Forces recompilation when workflow JSON files change (they're embedded via `include_str!`). **Note:** The filenames listed in `build.rs` are out of date — they reference old workflow names (a1_counts, a2_structural, etc.) that no longer match the actual files in `workflows/analysis/`.
 
 ## Test Data (`tests/data/`)
 

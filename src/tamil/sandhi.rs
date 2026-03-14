@@ -34,15 +34,7 @@ pub struct SandhiResult {
     pub kutriyalukaram_merged: bool,
 }
 
-/// The six vallinam (hard) consonants that form kutriyalukaram with ு.
-const KUTRIYALUKARAM_CONSONANTS: [char; 6] = [
-    'க', // U+0B95
-    'ச', // U+0B9A
-    'ட', // U+0B9F
-    'த', // U+0BA4
-    'ப', // U+0BAA
-    'ற', // U+0BB1
-];
+use super::unicode::VALLINAM;
 
 /// Convert a standalone Tamil vowel letter (uyir) to its combining matra form.
 /// Returns None for அ (inherent vowel — no matra needed) and for non-vowel chars.
@@ -103,7 +95,7 @@ pub fn resolve(text: &str) -> SandhiResult {
         // E.g., படிறுஇலவாம் → படிறிலவாம் (று+இ → றி)
         if c == '\u{0BC1}'  // ு matra
             && i >= 1
-            && KUTRIYALUKARAM_CONSONANTS.contains(&chars[i - 1])
+            && VALLINAM.contains(&chars[i - 1])
             && i + 1 < chars.len()
             && super::unicode::is_vowel(chars[i + 1])
         {

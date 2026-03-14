@@ -190,11 +190,6 @@ pub fn matra_to_vowel(matra: char) -> Option<char> {
     }
 }
 
-pub fn validate_script(word: &str) -> (bool, Vec<char>) {
-    let invalid: Vec<char> = word.chars().filter(|c| !is_tamil_char(*c)).collect();
-    (invalid.is_empty(), invalid)
-}
-
 /// Strip all non-Tamil-script characters from a word.
 /// Keeps only U+0B80–U+0BFF (Tamil block), removing dandas, hyphens, dots, etc.
 pub fn strip_non_tamil(word: &str) -> (String, bool) {
@@ -243,16 +238,6 @@ mod tests {
         assert_eq!(matra_vowel_length('\u{0BC6}'), Some(VowelLength::Kuril)); // ெ
         assert_eq!(matra_vowel_length('\u{0BC7}'), Some(VowelLength::Nedil)); // ே
         assert_eq!(matra_vowel_length('\u{0BC8}'), Some(VowelLength::Nedil)); // ை
-    }
-
-    #[test]
-    fn test_script_validation() {
-        let (valid, _) = validate_script("அகர");
-        assert!(valid);
-
-        let (valid, invalid) = validate_script("hello");
-        assert!(!valid);
-        assert_eq!(invalid.len(), 5);
     }
 
     #[test]

@@ -87,31 +87,6 @@ pub fn extract_graphemes(word: &str) -> Vec<TamilGrapheme> {
     graphemes
 }
 
-/// Data about the last grapheme of a word, pre-computed for JSONLogic access
-pub struct WordGraphemeData {
-    pub kadai_ezhuthu: Option<String>,
-    pub kadai_ezhuthu_mei: Option<String>,
-    pub kadai_ezhuthu_alavu: Option<VowelLength>,
-    pub kadai_ezhuthu_vagai: Option<GraphemeType>,
-}
-
-pub fn word_grapheme_data(graphemes: &[TamilGrapheme]) -> WordGraphemeData {
-    match graphemes.last() {
-        Some(g) => WordGraphemeData {
-            kadai_ezhuthu: Some(g.text.clone()),
-            kadai_ezhuthu_mei: g.mei.map(|c| c.to_string()),
-            kadai_ezhuthu_alavu: g.alavu,
-            kadai_ezhuthu_vagai: Some(g.vagai),
-        },
-        None => WordGraphemeData {
-            kadai_ezhuthu: None,
-            kadai_ezhuthu_mei: None,
-            kadai_ezhuthu_alavu: None,
-            kadai_ezhuthu_vagai: None,
-        },
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

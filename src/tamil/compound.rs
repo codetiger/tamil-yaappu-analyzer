@@ -234,10 +234,9 @@ fn find_best_binary_split(syllables: &[super::syllable::TamilSyllable]) -> Optio
         }
     }
 
-    candidates.sort_by_key(|c| std::cmp::Reverse(c.score()));
     candidates
         .into_iter()
-        .next()
+        .max_by_key(|c| c.score())
         .map(|c| vec![c.left_text, c.right_text])
 }
 

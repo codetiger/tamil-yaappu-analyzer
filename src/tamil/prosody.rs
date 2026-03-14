@@ -121,7 +121,7 @@ fn is_kutriyalikaram(syl: &TamilSyllable, index: usize) -> bool {
 
 /// Kutriyalukaram consonants: word-final kuril-open syllable ending in these
 /// is absorbed into the preceding Neer asai.
-const KUTRIYALUKARAM_ENDINGS: [&str; 6] = ["கு", "சு", "டு", "து", "பு", "று"];
+pub const KUTRIYALUKARAM_ENDINGS: [&str; 6] = ["கு", "சு", "டு", "து", "பு", "று"];
 
 /// Classify syllables into asai with morpheme boundary awareness.
 /// When a morpheme boundary falls between two kuril-open syllables,

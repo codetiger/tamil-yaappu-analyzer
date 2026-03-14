@@ -56,29 +56,24 @@ impl AsyncFunctionHandler for Preprocessor {
     }
 }
 
-/// Process a single word through the prosodic pipeline.
-fn process_word(raw_word: &str) -> SolData {
+/// Normalize and resolve sandhi for prosodic analysis.
+/// Returns the analysis-ready text, or None if the word contains no Tamil characters.
+fn compute_analysis_text(raw_word: &str) -> Option<String> {
     let normalized = unicode::normalize_nfc(raw_word);
     let (text, _) = unicode::strip_non_tamil(&normalized);
-
     if text.is_empty() {
-        return SolData {
-            raw: raw_word.to_string(),
-            muthal_ezhuthu: None,
-            irandaam_ezhuthu: None,
-            kadai_ezhuthu: None,
-            kadai_alavu: None,
-            asai_seq: vec![],
-        };
+        return None;
     }
-
     let sandhi_result = sandhi::resolve(&text);
-    let analysis_text = if sandhi_result.pluti_resolved || sandhi_result.kutriyalukaram_merged {
-        &sandhi_result.phonological_text
+    if sandhi_result.pluti_resolved || sandhi_result.kutriyalukaram_merged {
+        Some(sandhi_result.phonological_text)
     } else {
-        &text
-    };
+        Some(text)
+    }
+}
 
+/// Build SolData from already-computed analysis text.
+fn process_word_from_text(raw_word: &str, analysis_text: &str) -> SolData {
     let graphemes = grapheme::extract_graphemes(analysis_text);
     let syllables = syllable::syllabify(&graphemes);
     let asaikal = prosody::classify_asai(&syllables);
@@ -126,31 +121,31 @@ fn process_word(raw_word: &str) -> SolData {
     }
 }
 
+/// Process a single word through the prosodic pipeline.
+fn process_word(raw_word: &str) -> SolData {
+    match compute_analysis_text(raw_word) {
+        Some(text) => process_word_from_text(raw_word, &text),
+        None => SolData::empty(raw_word),
+    }
+}
+
 /// Process a whitespace token, decomposing overflow compounds into sub-words.
 /// Returns one SolData for normal words, multiple for decomposed compounds.
 fn process_and_decompose(raw_word: &str) -> Vec<SolData> {
-    let sol = process_word(raw_word);
+    let analysis_text = match compute_analysis_text(raw_word) {
+        Some(t) => t,
+        None => return vec![SolData::empty(raw_word)],
+    };
+
+    let sol = process_word_from_text(raw_word, &analysis_text);
 
     // Not overflow — return as-is
     if sol.asai_seq.len() <= 3 {
         return vec![sol];
     }
 
-    // Compute the analysis text (same logic as process_word)
-    let normalized = unicode::normalize_nfc(raw_word);
-    let (text, _) = unicode::strip_non_tamil(&normalized);
-    if text.is_empty() {
-        return vec![sol];
-    }
-    let sandhi_result = sandhi::resolve(&text);
-    let analysis_text = if sandhi_result.pluti_resolved || sandhi_result.kutriyalukaram_merged {
-        &sandhi_result.phonological_text
-    } else {
-        &text
-    };
-
     // Try compound decomposition first
-    if let Some(parts) = compound::decompose_compound(analysis_text) {
+    if let Some(parts) = compound::decompose_compound(&analysis_text) {
         let results: Vec<SolData> = parts.iter().map(|p| process_word(p)).collect();
         if results
             .iter()
@@ -161,7 +156,7 @@ fn process_and_decompose(raw_word: &str) -> Vec<SolData> {
     }
 
     // Try seer-based splitting as last resort
-    if let Some(parts) = split_by_seer(analysis_text) {
+    if let Some(parts) = split_by_seer(&analysis_text) {
         let results: Vec<SolData> = parts.iter().map(|p| process_word(p)).collect();
         if results
             .iter()
@@ -213,8 +208,6 @@ fn split_by_seer(text: &str) -> Option<Vec<String>> {
     if parts.len() > 1 { Some(parts) } else { None }
 }
 
-const KUTRIYALUKARAM_ENDINGS: [&str; 6] = ["கு", "சு", "டு", "து", "பு", "று"];
-
 /// Cross-word kutriyalukaram elision.
 /// When word_n ends with an open-kuril kutriyalukaram syllable (கு/சு/டு/து/பு/று)
 /// and word_{n+1} starts with a Tamil vowel, the kutriyalukaram is metrically
@@ -231,7 +224,7 @@ fn apply_cross_word_elision(sorkal: &mut [SolData]) {
     for i in 0..sorkal.len() - 1 {
         // Word must end with a kutriyalukaram grapheme
         let ku_ending = match &sorkal[i].kadai_ezhuthu {
-            Some(ke) if KUTRIYALUKARAM_ENDINGS.contains(&ke.as_str()) => ke.clone(),
+            Some(ke) if prosody::KUTRIYALUKARAM_ENDINGS.contains(&ke.as_str()) => ke.clone(),
             _ => continue,
         };
 

@@ -25,3 +25,16 @@ pub struct SolData {
     pub kadai_alavu: Option<String>,
     pub asai_seq: Vec<String>,
 }
+
+impl SolData {
+    pub fn empty(raw: &str) -> Self {
+        SolData {
+            raw: raw.to_string(),
+            muthal_ezhuthu: None,
+            irandaam_ezhuthu: None,
+            kadai_ezhuthu: None,
+            kadai_alavu: None,
+            asai_seq: vec![],
+        }
+    }
+}

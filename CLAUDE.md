@@ -62,6 +62,19 @@ NFC normalize → script validate → danda strip → **sandhi resolve** → gra
 
 `PaaData` is the central enriched structure containing: raw input, word/line data, seer classifications, junction (thalai) data with type/validity, ornamentation (ani) data with detail strings, and eetru classification.
 
-## Corpus
+## Test Data (`tests/data/`)
 
-`kural.json` contains all 1330 Thirukurals used for integration testing. All must classify as `kural_venba`.
+Test corpus organized by expected classification type:
+
+| File | Count | Expected Classification | Source |
+|------|-------|------------------------|--------|
+| `kural.json` | 1330 | `kural_venba` | Thirukural |
+| `nerisai_venba.json` | 50 | `nerisai_venba` | Naladiyar, Nalavenba |
+| `innisai_venba.json` | 50 | `innisai_venba` | Naladiyar, Nalavenba |
+| `sindhiyal_venba.json` | 2 | `sindhiyal_venba` | Yappurungalakkarikkai |
+| `nerisai_asiriyappa.json` | 50 | `nerisai_asiriyappa` | Kurunthokai |
+| `nilaimandila_asiriyappa.json` | 12 | `nilaimandila_asiriyappa` | Kurunthokai |
+| `kalippa.json` | 50 | `kalippa` | Kurunthokai |
+| `vanjippa.json` | 30 | `vanjippa` | Naladiyar, Nalavenba |
+
+Source texts obtained from Project Madurai (projectmadurai.org).

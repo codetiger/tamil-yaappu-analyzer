@@ -1,6 +1,6 @@
 use tamil_yaappu_analyzer::preprocessor::preprocess;
 
-const KURAL_JSON: &str = include_str!("../kural.json");
+const KURAL_JSON: &str = include_str!("data/kural.json");
 
 // === Structure Tests ===
 

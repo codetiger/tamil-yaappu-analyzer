@@ -3,7 +3,7 @@ use serde_json::json;
 use std::sync::Arc;
 use tamil_yaappu_analyzer::create_engine;
 
-const KURAL_JSON: &str = include_str!("../kural.json");
+const KURAL_JSON: &str = include_str!("data/kural.json");
 
 #[tokio::test]
 async fn test_all_kurals_classify_as_kural_venba() {

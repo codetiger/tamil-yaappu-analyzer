@@ -11,8 +11,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
     let index: usize = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(1);
 
-    let kurals: Vec<String> =
-        serde_json::from_str(include_str!("../tests/data/kural.json"))?;
+    let kurals: Vec<String> = serde_json::from_str(include_str!("../tests/data/kural.json"))?;
 
     if index < 1 || index > kurals.len() {
         eprintln!("Kural index must be between 1 and {}", kurals.len());

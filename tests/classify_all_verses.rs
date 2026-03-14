@@ -20,15 +20,10 @@ async fn assert_all_classify_as(
             Ok(_) => {
                 let c = &message.data()["analysis"]["classification"];
                 let primary = c["primary_pa"]["value"].as_str().unwrap_or("MISSING");
-                let granularity = c["granularity_type"]["value"]
-                    .as_str()
-                    .unwrap_or("MISSING");
+                let granularity = c["granularity_type"]["value"].as_str().unwrap_or("MISSING");
                 let is_valid = c["is_valid"]["value"].as_bool().unwrap_or(false);
 
-                if primary != expected_primary
-                    || granularity != expected_granularity
-                    || !is_valid
-                {
+                if primary != expected_primary || granularity != expected_granularity || !is_valid {
                     let preview: String = verse.chars().take(30).collect();
                     failures.push(format!(
                         "  #{}: got pa={}, gran={}, valid={}\n    {}",
@@ -108,14 +103,12 @@ async fn test_nilaimandila_asiriyappa() {
 
 #[tokio::test]
 async fn test_kalippa() {
-    let verses: Vec<String> =
-        serde_json::from_str(include_str!("data/kalippa.json")).unwrap();
+    let verses: Vec<String> = serde_json::from_str(include_str!("data/kalippa.json")).unwrap();
     assert_all_classify_as(&verses, "kalippa", "kalippa", "kalippa").await;
 }
 
 #[tokio::test]
 async fn test_vanjippa() {
-    let verses: Vec<String> =
-        serde_json::from_str(include_str!("data/vanjippa.json")).unwrap();
+    let verses: Vec<String> = serde_json::from_str(include_str!("data/vanjippa.json")).unwrap();
     assert_all_classify_as(&verses, "vanjippa", "vanjippa", "vanjippa").await;
 }

@@ -124,20 +124,16 @@ function handleLineClick(lineIdx) {
 // ===== Tag Interactions =====
 
 function handleTagHover(tagKey) {
+  if (activeTag) {
+    activeTag = null;
+    document.querySelectorAll('.tag-pill.active').forEach(el => el.classList.remove('active'));
+  }
   clearEvidence();
   highlightEvidence(evidenceMap, tagKey, false);
-  // Re-apply active tag if different
-  if (activeTag && activeTag !== tagKey) {
-    highlightEvidence(evidenceMap, activeTag, true);
-  }
 }
 
 function handleTagLeave() {
   clearEvidence();
-  // Re-apply active tag
-  if (activeTag) {
-    highlightEvidence(evidenceMap, activeTag, true);
-  }
 }
 
 function handleTagClick(tagKey) {

@@ -38,68 +38,35 @@
                               {"==": [{"var": "kadai_alavu"}, "nedil"]}
                             ]}
                           ]},
-                          "vaaippaadu": {"if": [
-                            {"==": [{"length": {"var": "asai_seq"}}, 1]},
-                            {"if": [
-                              {"==": [{"var": "asai_seq.0"}, "neer"]},
-                              "neer_asai",
-                              "nirai_asai"
-                            ]},
-                            {"==": [{"length": {"var": "asai_seq"}}, 2]},
-                            {"if": [
-                              {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
-                              "thema",
-                              {"and": [{"==": [{"var": "asai_seq.0"}, "nirai"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
-                              "pulima",
-                              {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "nirai"]}]},
-                              "koovila",
-                              "karuvila"
-                            ]},
-                            {"==": [{"length": {"var": "asai_seq"}}, 3]},
-                            {"if": [
-                              {"==": [{"var": "asai_seq.2"}, "neer"]},
-                              {"if": [
-                                {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
-                                "themangai",
-                                {"and": [{"==": [{"var": "asai_seq.0"}, "nirai"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
-                                "pulimangai",
-                                {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "nirai"]}]},
-                                "koovilangai",
-                                "karuvilangai"
-                              ]},
-                              {"if": [
-                                {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
-                                "themankani",
-                                {"and": [{"==": [{"var": "asai_seq.0"}, "nirai"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
-                                "pulimankani",
-                                {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "nirai"]}]},
-                                "koovilankani",
-                                "karuvilankani"
-                              ]}
-                            ]},
-                            {">": [{"length": {"var": "asai_seq"}}, 3]},
-                            "overflow",
-                            null
+                          "vaaippaadu": {"switch": [
+                            {"length": {"var": "asai_seq"}},
+                            [
+                              [1, {"?:": [{"==": [{"var": "asai_seq.0"}, "neer"]}, "neer_asai", "nirai_asai"]}],
+                              [2, {"switch": [
+                                {"cat": [{"var": "asai_seq.0"}, ":", {"var": "asai_seq.1"}]},
+                                [["neer:neer", "thema"], ["nirai:neer", "pulima"], ["neer:nirai", "koovila"]],
+                                "karuvila"
+                              ]}],
+                              [3, {"switch": [
+                                {"cat": [{"var": "asai_seq.0"}, ":", {"var": "asai_seq.1"}, ":", {"var": "asai_seq.2"}]},
+                                [
+                                  ["neer:neer:neer", "themangai"], ["nirai:neer:neer", "pulimangai"],
+                                  ["neer:nirai:neer", "koovilangai"], ["nirai:nirai:neer", "karuvilangai"],
+                                  ["neer:neer:nirai", "themankani"], ["nirai:neer:nirai", "pulimankani"],
+                                  ["neer:nirai:nirai", "koovilankani"], ["nirai:nirai:nirai", "karuvilankani"]
+                                ],
+                                null
+                              ]}]
+                            ],
+                            {"?:": [{">": [{"length": {"var": "asai_seq"}}, 3]}, "overflow", null]}
                           ]},
-                          "seer_group": {"if": [
-                            {"==": [{"length": {"var": "asai_seq"}}, 1]},
-                            {"if": [
-                              {"==": [{"var": "asai_seq.0"}, "neer"]},
-                              "ma_seer",
-                              "vila_seer"
-                            ]},
-                            {"==": [{"length": {"var": "asai_seq"}}, 2]},
-                            {"if": [
-                              {"==": [{"var": "asai_seq.1"}, "neer"]},
-                              "ma_seer",
-                              "vila_seer"
-                            ]},
-                            {"==": [{"length": {"var": "asai_seq"}}, 3]},
-                            {"if": [
-                              {"==": [{"var": "asai_seq.2"}, "neer"]},
-                              "kaai_seer",
-                              "kani_seer"
-                            ]},
+                          "seer_group": {"switch": [
+                            {"length": {"var": "asai_seq"}},
+                            [
+                              [1, {"?:": [{"==": [{"var": "asai_seq.0"}, "neer"]}, "ma_seer", "vila_seer"]}],
+                              [2, {"?:": [{"==": [{"var": "asai_seq.1"}, "neer"]}, "ma_seer", "vila_seer"]}],
+                              [3, {"?:": [{"==": [{"var": "asai_seq.2"}, "neer"]}, "kaai_seer", "kani_seer"]}]
+                            ],
                             null
                           ]}
                         }
@@ -137,20 +104,14 @@
                   {"slice": [{"var": "temp_data.last_sorkal"}, -1]},
                   {"if": [
                     {"==": [{"var": "asai_count"}, 1]},
-                    {"if": [
-                      {"==": [{"var": "asai_seq.0"}, "neer"]},
-                      "naal",
-                      "malar"
-                    ]},
+                    {"?:": [{"==": [{"var": "asai_seq.0"}, "neer"]}, "naal", "malar"]},
                     {"and": [
                       {"==": [{"var": "asai_count"}, 2]},
                       {"==": [{"var": "kadai_alavu"}, "kuril"]}
                     ]},
-                    {"if": [
-                      {"and": [{"==": [{"var": "asai_seq.0"}, "neer"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
-                      "kaasu",
-                      {"and": [{"==": [{"var": "asai_seq.0"}, "nirai"]}, {"==": [{"var": "asai_seq.1"}, "neer"]}]},
-                      "pirappu",
+                    {"switch": [
+                      {"cat": [{"var": "asai_seq.0"}, ":", {"var": "asai_seq.1"}]},
+                      [["neer:neer", "kaasu"], ["nirai:neer", "pirappu"]],
                       null
                     ]},
                     null

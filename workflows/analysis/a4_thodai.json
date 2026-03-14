@@ -14,7 +14,7 @@
         "input": {
           "mappings": [
             {
-              "path": "data.analysis.tags.rhyme_id_list",
+              "path": "temp_data.rhyme_id_list",
               "logic": {
                 "map": [
                   {"var": "data.paa.adikal"},
@@ -59,8 +59,8 @@
               "path": "temp_data.unique_rhymes",
               "logic": {
                 "reduce": [
-                  {"var": "data.analysis.tags.rhyme_id_list"},
-                  {"if": [
+                  {"var": "temp_data.rhyme_id_list"},
+                  {"?:": [
                     {"in": [{"var": "current"}, {"var": "accumulator"}]},
                     {"var": "accumulator"},
                     {"merge": [{"var": "accumulator"}, [{"var": "current"}]]}
@@ -74,7 +74,7 @@
               "logic": {
                 "reduce": [
                   {"var": "temp_data.kadai_list"},
-                  {"if": [
+                  {"?:": [
                     {"in": [{"var": "current"}, {"var": "accumulator"}]},
                     {"var": "accumulator"},
                     {"merge": [{"var": "accumulator"}, [{"var": "current"}]]}
@@ -88,7 +88,7 @@
               "logic": {
                 "reduce": [
                   {"var": "temp_data.monai_list"},
-                  {"if": [
+                  {"?:": [
                     {"in": [{"var": "current"}, {"var": "accumulator"}]},
                     {"var": "accumulator"},
                     {"merge": [{"var": "accumulator"}, [{"var": "current"}]]}
@@ -114,7 +114,7 @@
             },
             {
               "path": "data.analysis.tags.etukai_detail",
-              "logic": {"var": "data.analysis.tags.rhyme_id_list"}
+              "logic": {"var": "temp_data.rhyme_id_list"}
             },
             {
               "path": "data.analysis.tags.monai",
@@ -138,11 +138,9 @@
             },
             {
               "path": "data.analysis.tags.vikarpam_type",
-              "logic": {"if": [
-                {"==": [{"length": {"var": "temp_data.unique_rhymes"}}, 1]},
-                "oru_vikarpam",
-                {"==": [{"length": {"var": "temp_data.unique_rhymes"}}, 2]},
-                "iru_vikarpam",
+              "logic": {"switch": [
+                {"length": {"var": "temp_data.unique_rhymes"}},
+                [[1, "oru_vikarpam"], [2, "iru_vikarpam"]],
                 "pala_vikarpam"
               ]}
             },
@@ -150,7 +148,7 @@
               "path": "temp_data.rhyme_schema_reduce",
               "logic": {
                 "reduce": [
-                  {"var": "data.analysis.tags.rhyme_id_list"},
+                  {"var": "temp_data.rhyme_id_list"},
                   {
                     "schema": {"merge": [
                       {"var": "accumulator.schema"},

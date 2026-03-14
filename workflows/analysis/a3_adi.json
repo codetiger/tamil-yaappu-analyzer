@@ -8,7 +8,7 @@
   "tasks": [
     {
       "id": "a3_enrich_adi",
-      "name": "A3: Enrich adikal with word_count, adi_type, line_position, is_standard_venba_line, has_thanichol",
+      "name": "A3: Enrich adikal with word_count, adi_type, line_position",
       "function": {
         "name": "map",
         "input": {
@@ -26,15 +26,9 @@
                         "raw": {"var": "current.raw"},
                         "sorkal": {"var": "current.sorkal"},
                         "word_count": {"length": {"var": "current.sorkal"}},
-                        "adi_type": {"if": [
-                          {"==": [{"length": {"var": "current.sorkal"}}, 2]},
-                          "kuraladi",
-                          {"==": [{"length": {"var": "current.sorkal"}}, 3]},
-                          "chinthadi",
-                          {"==": [{"length": {"var": "current.sorkal"}}, 4]},
-                          "alavadi",
-                          {"==": [{"length": {"var": "current.sorkal"}}, 5]},
-                          "neduladi",
+                        "adi_type": {"switch": [
+                          {"length": {"var": "current.sorkal"}},
+                          [[2, "kuraladi"], [3, "chinthadi"], [4, "alavadi"], [5, "neduladi"]],
                           "kazhineduladi"
                         ]},
                         "line_position": {"if": [
@@ -51,18 +45,7 @@
                           ]},
                           "penultimate",
                           "middle"
-                        ]},
-                        "is_standard_venba_line": {"and": [
-                          {"==": [{"length": {"var": "current.sorkal"}}, 4]},
-                          {"all": [
-                            {"var": "current.sorkal"},
-                            {"or": [
-                              {"==": [{"var": "is_ventalai"}, null]},
-                              {"==": [{"var": "is_ventalai"}, true]}
-                            ]}
-                          ]}
-                        ]},
-                        "has_thanichol": false
+                        ]}
                       }]
                     ]}
                   },

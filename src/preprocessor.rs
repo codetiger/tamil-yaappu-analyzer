@@ -144,26 +144,29 @@ fn process_and_decompose(raw_word: &str) -> Vec<SolData> {
         return vec![sol];
     }
 
-    // Try compound decomposition first
-    if let Some(parts) = compound::decompose_compound(&analysis_text) {
-        let results: Vec<SolData> = parts.iter().map(|p| process_word(p)).collect();
+    // Try decomposition strategies in priority order
+    let try_split = |parts: Vec<String>| -> Option<Vec<SolData>> {
+        let results: Vec<SolData> = parts.iter().map(|p| process_word_from_text(p, p)).collect();
         if results
             .iter()
             .all(|s| !s.asai_seq.is_empty() && s.asai_seq.len() <= 3)
         {
-            return results;
+            Some(results)
+        } else {
+            None
         }
+    };
+
+    if let Some(parts) = compound::decompose_compound(&analysis_text)
+        && let Some(results) = try_split(parts)
+    {
+        return results;
     }
 
-    // Try seer-based splitting as last resort
-    if let Some(parts) = split_by_seer(&analysis_text) {
-        let results: Vec<SolData> = parts.iter().map(|p| process_word(p)).collect();
-        if results
-            .iter()
-            .all(|s| !s.asai_seq.is_empty() && s.asai_seq.len() <= 3)
-        {
-            return results;
-        }
+    if let Some(parts) = split_by_seer(&analysis_text)
+        && let Some(results) = try_split(parts)
+    {
+        return results;
     }
 
     // Couldn't decompose — return original

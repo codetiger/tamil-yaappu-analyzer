@@ -71,17 +71,9 @@ pub const DOUBLE_DANDA: char = '\u{0965}';
 
 // Vallinam (hard) consonants — the six consonants that can form kutrilugaram
 pub const VALLINAM: [char; 6] = ['க', 'ச', 'ட', 'த', 'ப', 'ற'];
-const U_MATRA: char = '\u{0BC1}'; // ு (short 'u' matra)
 
 pub fn is_vallinam(c: char) -> bool {
     VALLINAM.contains(&c)
-}
-
-/// Check if a grapheme text represents kutrilugaram (vallinam consonant + short 'u' matra).
-/// Kutrilugaram is the shortened 'u' sound (half matra) at the end of a word.
-pub fn is_kutrilugaram_ending(text: &str) -> bool {
-    let chars: Vec<char> = text.chars().collect();
-    chars.len() == 2 && is_vallinam(chars[0]) && chars[1] == U_MATRA
 }
 
 // Kuril (short) vowels

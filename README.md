@@ -14,48 +14,52 @@ Validated against **1,574+ verses** from classical Tamil literature including al
 
 ## What It Produces
 
-For a given Tamil verse, the preprocessor generates `PaaData` — a complete prosodic decomposition. Here's what it produces for the word **"அகர"**:
+The output is a JSON object with three top-level keys: `input`, `paa`, and `analysis`. Each classification and tag value includes `refs` (evidence references) alongside the `value`, enabling traceability.
+
+### Per-Word Prosodic Data
+
+Each word in `paa.adikal[].sorkal[]` is enriched with prosodic details. Here's the word **"அகர"** from Kural #1:
 
 ```json
 {
-  "raw_text": "அகர",
-  "ezhuthukkal": [
-    { "text": "அ",  "vagai": "uyir",    "mei": null, "alavu": "kuril" },
-    { "text": "கர", "vagai": "uyirmei", "mei": "க",  "alavu": "kuril" }
-  ],
-  "syllables": [
-    { "text": "அக", "alavu": "kuril", "is_closed": true,  "matrai": 2 },
-    { "text": "ர",  "alavu": "kuril", "is_closed": false, "matrai": 1 }
-  ],
+  "raw": "அகர",
+  "asai_count": 2,
+  "asai_seq": ["nirai", "neer"],
   "asaikal": [
-    { "vagai": "nirai", "text": "அக" },
-    { "vagai": "neer",  "text": "ர"  }
+    { "text": "அக", "vagai": "nirai" },
+    { "text": "ர",  "vagai": "neer" }
   ],
-  "asai_amaivu": "nirai_neer",
-  "seer_vagai": "pulima",
-  "seer_category": "iyarseer"
+  "vaaippaadu": { "refs": ["word.0.0.asaikal"], "value": "pulima" },
+  "seer_group": { "refs": ["word.0.0.asaikal"], "value": "ma_seer" },
+  "muthal_ezhuthu": "அ",
+  "irandaam_ezhuthu": "க",
+  "kadai_ezhuthu": "ர",
+  "kadai_alavu": "kuril",
+  "is_kutriyalukaram": { "refs": ["word.0.0.kadai_ezhuthu", "word.0.0.asaikal"], "value": false },
+  "thalai_from_prev": { "refs": [], "value": null },
+  "is_ventalai": { "refs": [], "value": null }
 }
 ```
 
-Each word goes through: **raw text → graphemes (ezhuthukkal) → syllables → asai (mora) → seer (foot)**.
+Internally, each word goes through: **raw text → graphemes (ezhuthukkal) → syllables → asai (mora) → seer (foot)**. The final output exposes the asai/seer-level data with evidence references.
 
 ### Full Output Structure
 
 For a complete verse, the engine produces:
 
-**Prosodic data (`data.paa`)** — per-word and per-line breakdowns including graphemes, syllables, asai, seer classification, sandhi resolution, compound decomposition, junction (thalai) data with type/validity, and ornamentation (ani) with detail strings.
+**Prosodic data (`paa`)** — per-line (`adikal`) and per-word (`sorkal`) breakdowns including asai sequences, seer classification (vaaippaadu, seer_group), junction data (thalai_from_prev, is_ventalai), ornamentation characters (muthal/irandaam/kadai_ezhuthu), and line metadata (adi_type, line_position, word_count).
 
-**Classification (`data.analysis.classification`)** — the determined verse form:
+**Classification (`analysis.classification`)** — the determined verse form, each with evidence refs:
 ```json
 {
-  "primary_pa": "venba",
-  "granularity_type": "kural_venba",
-  "osai_type": "venba_osai",
-  "is_valid": true
+  "primary_pa":       { "refs": ["..."], "value": "venba" },
+  "granularity_type": { "refs": ["..."], "value": "kural_venba" },
+  "osai_type":        { "refs": ["..."], "value": "seppal" },
+  "is_valid":         { "refs": ["..."], "value": true }
 }
 ```
 
-**Analysis tags (`data.analysis.tags`)** — boolean/string tags from all analysis layers covering seer patterns, thalai validity, line structure, and rhyme patterns.
+**Analysis tags (`analysis.tags`)** — tags from all analysis layers (seer patterns, thalai validity, line structure, rhyme patterns), each with evidence refs tracing back to the specific words/lines that determined the value.
 
 ## Architecture
 
@@ -64,37 +68,37 @@ The system is built on the [dataflow-rs](https://github.com/GoPlasmatic/dataflow
 ```
                         Tamil Verse Input
                               |
-          ┌───────────────────┴───────────────────┐
-          |        PREPROCESSOR (Rust)            |
-          |        Meter-agnostic analysis        |
-          |                                       |
-          |  NFC Normalize                        |
-          |    → Script Validate                  |
-          |      → Danda Strip                    |
-          |        → Sandhi Resolve               |
-          |          → Grapheme Extract            |
-          |            → Syllabify                 |
-          |              → Asai Classify (mora)    |
-          |                → Seer Classify (foot)  |
-          |                  → Ani Compute         |
-          |                    → Compound Decompose|
-          |                      → Thalai Data     |
-          |                        → Eetru Classify|
-          └───────────────────┬───────────────────┘
+          ┌───────────────────┴──────────────────────┐
+          |        PREPROCESSOR (Rust)               |
+          |        Meter-agnostic analysis           |
+          |                                          |
+          |  NFC Normalize                           |
+          |    → Script Validate                     |
+          |      → Danda Strip                       |
+          |        → Sandhi Resolve                  |
+          |          → Grapheme Extract              |
+          |            → Syllabify                   |
+          |              → Asai Classify (mora)      |
+          |                → Seer Classify (foot)    |
+          |                  → Ani Compute           |
+          |                    → Compound Decompose  |
+          |                      → Thalai Data       |
+          |                        → Eetru Classify  |
+          └───────────────────┬──────────────────────┘
                               |
                            PaaData
                      (structured JSON)
                               |
-          ┌───────────────────┴───────────────────┐
-          |      ANALYSIS WORKFLOWS (JSON)        |
-          |      5 layers, declarative rules      |
-          |                                       |
-          |  A1 Seer     — foot patterns & tags   |
-          |  A2 Thalai   — junction validity      |
-          |  A3 Adi      — line structure         |
-          |  A4 Thodai   — rhyme & ornamentation  |
-          |  A5 Classify — verse form & sub-type  |
-          └───────────────────┬───────────────────┘
+          ┌───────────────────┴──────────────────────┐
+          |       ANALYSIS WORKFLOWS (JSON)          |
+          |       5 layers, declarative rules        |
+          |                                          |
+          |   A1 Seer     — foot patterns & tags     |
+          |   A2 Thalai   — junction validity        |
+          |   A3 Adi      — line structure           |
+          |   A4 Thodai   — rhyme & ornamentation    |
+          |   A5 Classify — verse form & sub-type    |
+          └───────────────────┬──────────────────────┘
                               |
                      Classification + Tags
 ```

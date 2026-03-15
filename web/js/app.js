@@ -21,8 +21,55 @@ const SAMPLE_VERSES = [
   { label: 'Kali Venba — 13 Lines', text: 'பூமேவு செங்கமலப் புத்தேளும் தேறரிய\nபாமேவு தெய்வப் பழமறையும் - தேமேவு\nநாதமும் நாதாந்த முடிவும் நவைதீர்ந்த\nபோதமும் காணாத போதமாய் - ஆதிநடு\nஅந்தம் கடந்தநித்தி யானந்த போதமாய்ப்\nபந்தம் தணந்த பரஞ்சுடராய் - வந்த\nஅடியார் இதயத் தாமரை மேலமர்ந்த\nநெடியான் மருகன் நிமலன் - வடியார்\nவேலோன் மயில்வீரன் வெற்றிப் புயத்தவன்\nகாலோன் வணங்கும் கதிரவன் - மேலோர்\nபுகழும் புகழவன் பொன்னடி போற்றி\nஇகழும் வினைதீர்க்கும் ஈசன் - மகனாய்\nகந்தன் மலரடி போற்றி' },
 ];
 
+// ===== Theme =====
+
+function initTheme() {
+  const stored = localStorage.getItem('theme');
+  if (stored === 'light' || stored === 'dark') {
+    document.documentElement.setAttribute('data-theme', stored);
+  } else {
+    const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', preferred);
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+}
+
+initTheme();
+
+// ===== URL Sharing =====
+
+function encodeShareText(text) {
+  return btoa(unescape(encodeURIComponent(text)));
+}
+
+function decodeShareText(encoded) {
+  try {
+    return decodeURIComponent(escape(atob(encoded)));
+  } catch {
+    return null;
+  }
+}
+
+function loadFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get('s');
+  if (!encoded) return null;
+  const text = decodeShareText(encoded);
+  if (!text) return null;
+  // Clear the URL param after loading
+  window.history.replaceState({}, '', window.location.pathname);
+  return text;
+}
+
 // State
 let engine = null;
+let shareTimeout = null;
 let currentPaa = null;
 let currentAnalysis = null;
 let evidenceMap = new Map();
@@ -36,6 +83,8 @@ const state = {
 const inputSection = document.getElementById('input-section');
 const inputTextarea = document.getElementById('input-text');
 const btnAnalyze = document.getElementById('btn-analyze');
+const btnShare = document.getElementById('btn-share');
+const btnThemeToggle = document.getElementById('btn-theme-toggle');
 const sampleSelect = document.getElementById('sample-select');
 const loadingBar = document.getElementById('loading-bar');
 const poemHeader = document.getElementById('poem-header');
@@ -82,6 +131,9 @@ async function analyze() {
 
     // Build evidence map
     evidenceMap = buildEvidenceMap(paa, analysis);
+
+    // Enable share button
+    btnShare.disabled = false;
 
     render();
   } catch (err) {
@@ -168,9 +220,41 @@ document.addEventListener('highlights-cleared', () => {
   activeTag = null;
 });
 
+// ===== Share =====
+
+function showCopiedFeedback() {
+  const span = btnShare.querySelector('span');
+  span.textContent = 'Copied!';
+  clearTimeout(shareTimeout);
+  shareTimeout = setTimeout(() => { span.textContent = 'Share'; }, 2000);
+}
+
+async function handleShare() {
+  const text = inputTextarea.value.trim();
+  if (!text) return;
+  const encoded = encodeShareText(text);
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.searchParams.set('s', encoded);
+  try {
+    await navigator.clipboard.writeText(url.toString());
+  } catch {
+    // Fallback: select a temporary input
+    const tmp = document.createElement('input');
+    tmp.value = url.toString();
+    document.body.appendChild(tmp);
+    tmp.select();
+    document.execCommand('copy');
+    document.body.removeChild(tmp);
+  }
+  showCopiedFeedback();
+}
+
 // ===== Event Wiring =====
 
 btnAnalyze.addEventListener('click', analyze);
+btnShare.addEventListener('click', handleShare);
+btnThemeToggle.addEventListener('click', toggleTheme);
 
 inputTextarea.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -195,8 +279,22 @@ SAMPLE_VERSES.forEach((k, i) => {
   sampleSelect.appendChild(opt);
 });
 
-// Pre-fill with Kural #1
-inputTextarea.value = SAMPLE_VERSES[0].text;
+// Load from shared URL or pre-fill with Kural #1
+const sharedText = loadFromUrl();
+if (sharedText) {
+  inputTextarea.value = sharedText;
+} else {
+  inputTextarea.value = SAMPLE_VERSES[0].text;
+}
+
+// Set titlebar height CSS variable for sticky poem-header
+const titlebar = document.querySelector('.titlebar');
+if (titlebar) {
+  const ro = new ResizeObserver(([entry]) => {
+    document.documentElement.style.setProperty('--titlebar-height', entry.target.offsetHeight + 'px');
+  });
+  ro.observe(titlebar);
+}
 
 // Start
 initWasm();

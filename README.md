@@ -91,7 +91,7 @@ The system is built on the [dataflow-rs](https://github.com/GoPlasmatic/dataflow
                               |
           ┌───────────────────┴──────────────────────┐
           |       ANALYSIS WORKFLOWS (JSON)          |
-          |       5 layers, declarative rules        |
+          |       6 chained workflows, declarative   |
           |                                          |
           |   A1 Seer     — foot patterns & tags     |
           |   A2 Thalai   — junction validity        |
@@ -186,15 +186,15 @@ Source texts obtained from [Project Madurai](https://www.projectmadurai.org/).
 
 ## Build & Run
 
-Requires Rust toolchain and the [`dataflow-rs`](https://github.com/GoPlasmatic/dataflow-rs) crate.
+Pure library crate. Requires Rust toolchain and the [`dataflow-rs`](https://github.com/GoPlasmatic/dataflow-rs) crate.
 
 ```bash
-cargo build                            # Build
-cargo run                              # Run with Kural #1
-cargo run 42                           # Run with Kural #42
-cargo test                             # Run all tests
-cargo test --test classify_all_kurals  # Full 1330-kural validation
-cargo test --test classify_all_verses  # All verse type classification tests
+cargo build                                        # Build library
+cargo test                                         # Run all tests
+cargo test --test classify_all_kurals              # Full 1330-kural validation
+cargo test --test classify_all_verses              # All verse type classification tests
+cargo run --example analyze_kural                  # Run with Kural #1
+cargo run --example analyze_kural -- 42            # Run with Kural #42
 ```
 
 ## References

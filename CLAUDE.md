@@ -16,9 +16,9 @@ cargo test --test integration_tests    # Integration tests only
 cargo test --test classify_all_kurals  # Full 1330-kural validation (~15s)
 cargo test --test classify_all_verses  # All verse type classification tests
 cargo test test_name                   # Run a single test by name
-cargo run                              # Run with Kural #1
-cargo run 42                            # Run with Kural #42
-RUST_LOG=debug cargo run               # Run with debug logging
+cargo run --example analyze_kural          # Run with Kural #1
+cargo run --example analyze_kural -- 42    # Run with Kural #42
+RUST_LOG=debug cargo run --example analyze_kural  # Run with debug logging
 ```
 
 ### WASM Build (for web UI)
@@ -76,7 +76,7 @@ The `wasm/` crate wraps the analysis engine for browser use via `wasm-bindgen`. 
 
 ### Build Script (`build.rs`)
 
-Forces recompilation when workflow JSON files change (they're embedded via `include_str!`). **Note:** The filenames listed in `build.rs` are out of date — they reference old workflow names (a1_counts, a2_structural, etc.) that no longer match the actual files in `workflows/analysis/`.
+Forces recompilation when workflow JSON files change (they're embedded via `include_str!`).
 
 ## Test Data (`tests/data/`)
 

@@ -2,6 +2,11 @@
 name = "tamil-yaappu-analyzer"
 version = "0.1.0"
 edition = "2024"
+description = "Tamil prosody analyzer and classifier for verse compositions"
+license = "Apache-2.0"
+repository = "https://github.com/codetiger/tamil-yaappu-analyzer"
+keywords = ["tamil", "prosody", "poetry", "linguistics", "analysis"]
+categories = ["text-processing"]
 
 [dependencies]
 dataflow-rs = "2.1"
